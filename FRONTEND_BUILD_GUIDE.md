@@ -106,24 +106,24 @@ app/
 
 ### Prerequisites
 - Node.js 18+ 
-- npm or yarn
+- bun
 
 ### Installation Steps
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/nethdin/sup-connect.git
 cd sup-connect
 ```
 
 2. **Install dependencies**
 ```bash
-npm install
+bun install
 ```
 
 3. **Run development server**
 ```bash
-npm run dev
+bun run dev
 ```
 
 Visit `http://localhost:3000` in your browser.
@@ -251,23 +251,14 @@ Displays ranked recommendations based on matching score.
 ## 🚀 Deployment
 
 The application can be deployed to:
-- **Vercel** (recommended for Next.js)
-- **Netlify**
-- **AWS Amplify**
-- **Self-hosted servers**
-
-### Vercel Deployment
-```bash
-npm run build
-vercel deploy
-```
+- **Raiilway**
 
 ## 📖 Additional Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [SRS Document](../SRS.md)
+- [SRS Document](./SRS.md)
 
 ## 🤝 Contributing
 
@@ -285,7 +276,7 @@ This project is part of a university assignment. All rights reserved.
 ## 👥 Team
 
 - **Project Owner**: Nethesh
-- **Frontend Developer**: [Your Name]
+- **Frontend Developer**: Nethesh
 
 ---
 
