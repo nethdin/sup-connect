@@ -41,7 +41,7 @@ const verifyPassword = async (password: string, hash: string): Promise<boolean> 
 
 // Create JWT token
 const createToken = (userId: string, role: UserRole): string => {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: JWT_EXPIRY } as jwt.SignOptions);
 };
 
 // Verify JWT token
@@ -454,7 +454,7 @@ export async function getRecommendationMatches(request: NextRequest) {
     );
 
     // Calculate matches
-    const recommendations: RecommendedSupervisor[] = supervisors
+    const recommendations = supervisors
       .map(supervisor => {
         const tags = JSON.parse(supervisor.tags);
         const matchedTags = tags.filter((tag: string) =>
@@ -480,11 +480,13 @@ export async function getRecommendationMatches(request: NextRequest) {
               id: supervisor.user_id,
               email: supervisor.user_email,
               name: supervisor.user_name,
+              role: 'SUPERVISOR' as UserRole,
+              createdAt: new Date(),
             },
-          },
+          } as SupervisorProfile,
           score,
           matchedTags,
-        };
+        } as RecommendedSupervisor;
       })
       .filter(rec => rec.score > 0)
       .sort((a, b) => b.score - a.score);
