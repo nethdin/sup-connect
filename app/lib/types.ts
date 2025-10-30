@@ -9,10 +9,23 @@ export interface User {
   createdAt: Date;
 }
 
+// Student Profile
+export interface StudentProfile {
+  id: string;
+  userId: string;
+  registrationNo: string;
+  department: string;
+  researchInterests?: string;
+  preferredFields?: string[];
+  profilePicture?: string;
+  user?: User;
+}
+
 // Supervisor Profile
 export interface SupervisorProfile {
   id: string;
   userId: string;
+  department?: string;
   specialization: string;
   tags: string[];
   bio: string;

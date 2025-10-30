@@ -69,12 +69,27 @@ const getUserFromRequest = (request: NextRequest) => {
 export async function registerUser(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, role } = body;
+    const { email, password, name, role, department, registrationNo, researchInterests, preferredFields, specialization, tags, bio, maxSlots } = body;
 
     // Validation
     if (!email || !password || !name || !role) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Role-specific validation
+    if (role === 'STUDENT' && (!department || !registrationNo)) {
+      return NextResponse.json(
+        { error: 'Department and registration number are required for students' },
+        { status: 400 }
+      );
+    }
+
+    if (role === 'SUPERVISOR' && (!department || !specialization || !tags || !bio || !maxSlots)) {
+      return NextResponse.json(
+        { error: 'Department, specialization, tags, bio, and max slots are required for supervisors' },
         { status: 400 }
       );
     }
@@ -92,15 +107,54 @@ export async function registerUser(request: NextRequest) {
       );
     }
 
+    // Check if registration number exists (for students)
+    if (role === 'STUDENT') {
+      const existingRegNo = await queryOne(
+        'SELECT * FROM student_profiles WHERE registration_no = ?',
+        [registrationNo]
+      );
+
+      if (existingRegNo) {
+        return NextResponse.json(
+          { error: 'Registration number already exists' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Hash password
     const hashedPassword = await hashPassword(password);
 
     // Create user
     const userId = generateId();
+    
+    // Create basic user record (same for all roles)
     await query(
       'INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)',
       [userId, email, hashedPassword, name, role]
     );
+    
+    // Create role-specific profile
+    if (role === 'STUDENT') {
+      const studentProfileId = generateId();
+      await query(
+        'INSERT INTO student_profiles (id, user_id, registration_no, department, research_interests, preferred_fields) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          studentProfileId,
+          userId, 
+          registrationNo,
+          department,
+          researchInterests || null,
+          preferredFields ? JSON.stringify(preferredFields) : null
+        ]
+      );
+    } else if (role === 'SUPERVISOR') {
+      const supervisorProfileId = generateId();
+      await query(
+        'INSERT INTO supervisor_profiles (id, user_id, department, specialization, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [supervisorProfileId, userId, department, specialization, JSON.stringify(tags), bio, maxSlots, 0]
+      );
+    }
 
     // Create token
     const token = createToken(userId, role as UserRole);
