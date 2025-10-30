@@ -124,8 +124,11 @@ export async function loginUser(request: NextRequest) {
     const body = await request.json();
     const { email, password } = body;
 
+    console.log('Login attempt for email:', email);
+
     // Validation
     if (!email || !password) {
+      console.log('Login failed: Missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -139,15 +142,22 @@ export async function loginUser(request: NextRequest) {
     );
 
     if (!user) {
+      console.log('Login failed: User not found for email:', email);
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
+    console.log('User found:', { id: user.id, email: user.email, name: user.name, role: user.role });
+    console.log('Password hash from DB:', user.password);
+
     // Verify password
     const isValidPassword = await verifyPassword(password, user.password);
+    console.log('Password verification result:', isValidPassword);
+    
     if (!isValidPassword) {
+      console.log('Login failed: Invalid password for email:', email);
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -156,6 +166,13 @@ export async function loginUser(request: NextRequest) {
 
     // Create token
     const token = createToken(user.id, user.role);
+    console.log('Login successful for:', email);
+    console.log('Response data:', { 
+      id: user.id, 
+      email: user.email, 
+      name: user.name, 
+      role: user.role 
+    });
 
     return NextResponse.json({
       message: 'Login successful',

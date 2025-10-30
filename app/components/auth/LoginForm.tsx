@@ -58,8 +58,21 @@ export default function LoginForm() {
       }
 
       const data = await response.json();
-      // TODO: Store token and redirect based on role
-      alert(`Welcome! Your role: ${data.role}`);
+      
+      // Store token in localStorage
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
+      // Redirect based on role
+      if (data.user.role === 'SUPERVISOR') {
+        window.location.href = '/supervisor/dashboard';
+      } else if (data.user.role === 'STUDENT') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (error) {
       setErrors({ submit: 'An error occurred. Please try again.' });
     } finally {
