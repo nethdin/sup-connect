@@ -175,6 +175,18 @@ export const supervisorAPI = {
       method: 'POST',
     });
   },
+
+  getStats: async (): Promise<{
+    stats: {
+      maxSlots: number;
+      currentSlots: number;
+      availableSlots: number;
+      specialization: string;
+      tags: string[];
+    };
+  }> => {
+    return apiRequest('/supervisor/stats');
+  },
 };
 
 // ============================================
@@ -225,6 +237,33 @@ export const studentAPI = {
       method: 'POST',
       body: JSON.stringify({ supervisorId }),
     });
+  },
+
+  getAssignment: async (): Promise<{
+    assignment: any | null;
+    message?: string;
+  }> => {
+    return apiRequest('/student/assignment');
+  },
+};
+
+// ============================================
+// ASSIGNMENT API
+// ============================================
+
+export const assignmentAPI = {
+  getStudentAssignment: async (): Promise<{
+    assignment: any | null;
+    message?: string;
+  }> => {
+    return apiRequest('/student/assignment');
+  },
+
+  getSupervisorAssignments: async (): Promise<{
+    assignments: any[];
+    total: number;
+  }> => {
+    return apiRequest('/supervisor/assignments');
   },
 };
 

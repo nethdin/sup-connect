@@ -62,6 +62,33 @@ const getUserFromRequest = (request: NextRequest) => {
   return verifyToken(token);
 };
 
+// Helper function to safely parse tags from database
+// Handles both JSON array format and comma-separated string format
+const parseTags = (tagsData: any): string[] => {
+  if (!tagsData) return [];
+  
+  // If it's already an array, return it
+  if (Array.isArray(tagsData)) return tagsData;
+  
+  // Try to parse as JSON first
+  try {
+    const parsed = JSON.parse(tagsData);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // If JSON parsing fails, treat as comma-separated string
+  }
+  
+  // Handle comma-separated string
+  if (typeof tagsData === 'string') {
+    return tagsData
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+  }
+  
+  return [];
+};
+
 // ============================================
 // AUTH ENDPOINTS
 // ============================================
@@ -282,7 +309,7 @@ export async function getAllSupervisors(request: NextRequest) {
       id: row.id,
       userId: row.user_id,
       specialization: row.specialization,
-      tags: JSON.parse(row.tags),
+      tags: parseTags(row.tags),
       bio: row.bio,
       maxSlots: row.max_slots,
       currentSlots: row.current_slots,
@@ -336,7 +363,7 @@ export async function getSupervisorById(id: string) {
       id: row.id,
       userId: row.user_id,
       specialization: row.specialization,
-      tags: JSON.parse(row.tags),
+      tags: parseTags(row.tags),
       bio: row.bio,
       maxSlots: row.max_slots,
       currentSlots: row.current_slots,
@@ -527,7 +554,7 @@ export async function getRecommendationMatches(request: NextRequest) {
     // Calculate matches
     const recommendations = supervisors
       .map(supervisor => {
-        const tags = JSON.parse(supervisor.tags);
+        const tags = parseTags(supervisor.tags);
         const matchedTags = tags.filter((tag: string) =>
           keywords.some((keyword: string) =>
             keyword.toLowerCase().includes(tag.toLowerCase()) ||
@@ -1056,6 +1083,192 @@ export async function bookMeetingSlot(request: NextRequest) {
     console.error('Book meeting error:', error);
     return NextResponse.json(
       { error: 'Failed to book meeting' },
+      { status: 500 }
+    );
+  }
+}
+
+// ============================================
+// ASSIGNMENT ENDPOINTS
+// ============================================
+
+export async function getStudentAssignment(request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'STUDENT') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get student's assignment
+    const assignment = await queryOne<any>(
+      `
+      SELECT 
+        a.*,
+        sp.id as supervisor_profile_id,
+        sp.specialization,
+        sp.tags,
+        sp.bio,
+        sp.max_slots,
+        sp.current_slots,
+        sp.profile_picture,
+        u.id as supervisor_user_id,
+        u.name as supervisor_name,
+        u.email as supervisor_email
+      FROM assignments a
+      JOIN supervisor_profiles sp ON a.supervisor_id = sp.id
+      JOIN users u ON sp.user_id = u.id
+      WHERE a.student_id = ?
+      `,
+      [auth.userId]
+    );
+
+    if (!assignment) {
+      return NextResponse.json({
+        assignment: null,
+        message: 'No supervisor assigned yet',
+      });
+    }
+
+    const formattedAssignment = {
+      id: assignment.id,
+      studentId: assignment.student_id,
+      supervisorId: assignment.supervisor_id,
+      assignedAt: assignment.assigned_at,
+      supervisor: {
+        id: assignment.supervisor_profile_id,
+        userId: assignment.supervisor_user_id,
+        specialization: assignment.specialization,
+        tags: parseTags(assignment.tags),
+        bio: assignment.bio,
+        maxSlots: assignment.max_slots,
+        currentSlots: assignment.current_slots,
+        profilePicture: assignment.profile_picture,
+        user: {
+          id: assignment.supervisor_user_id,
+          email: assignment.supervisor_email,
+          name: assignment.supervisor_name,
+          role: 'SUPERVISOR' as UserRole,
+        },
+      },
+    };
+
+    return NextResponse.json({
+      assignment: formattedAssignment,
+    });
+  } catch (error) {
+    console.error('Get student assignment error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch assignment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function getSupervisorAssignments(request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'SUPERVISOR') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get supervisor profile
+    const profile = await queryOne<any>(
+      'SELECT * FROM supervisor_profiles WHERE user_id = ?',
+      [auth.userId]
+    );
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Supervisor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get all assignments for this supervisor
+    const rows = await query<any[]>(
+      `
+      SELECT 
+        a.*,
+        u.id as student_user_id,
+        u.name as student_name,
+        u.email as student_email,
+        u.role as student_role
+      FROM assignments a
+      JOIN users u ON a.student_id = u.id
+      WHERE a.supervisor_id = ?
+      ORDER BY a.assigned_at DESC
+      `,
+      [profile.id]
+    );
+
+    const assignments = rows.map(row => ({
+      id: row.id,
+      studentId: row.student_id,
+      supervisorId: row.supervisor_id,
+      assignedAt: row.assigned_at,
+      student: {
+        id: row.student_user_id,
+        email: row.student_email,
+        name: row.student_name,
+        role: row.student_role,
+      },
+    }));
+
+    return NextResponse.json({
+      assignments,
+      total: assignments.length,
+    });
+  } catch (error) {
+    console.error('Get supervisor assignments error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch assignments' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function getSupervisorStats(request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'SUPERVISOR') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get supervisor profile
+    const profile = await queryOne<any>(
+      'SELECT * FROM supervisor_profiles WHERE user_id = ?',
+      [auth.userId]
+    );
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Supervisor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      stats: {
+        maxSlots: profile.max_slots,
+        currentSlots: profile.current_slots,
+        availableSlots: profile.max_slots - profile.current_slots,
+        specialization: profile.specialization,
+        tags: parseTags(profile.tags),
+      },
+    });
+  } catch (error) {
+    console.error('Get supervisor stats error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch stats' },
       { status: 500 }
     );
   }
