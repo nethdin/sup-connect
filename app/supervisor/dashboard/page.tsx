@@ -1,70 +1,107 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookingRequest, Assignment } from '@/app/lib/types';
 import RequestList from '@/app/components/student/RequestList';
+import { supervisorAPI, assignmentAPI } from '@/app/lib/api-client';
+import Link from 'next/link';
 
 export default function SupervisorDashboard() {
   const [pendingRequests, setPendingRequests] = useState<BookingRequest[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    maxSlots: 0,
+    currentSlots: 0,
+  });
 
-  // TODO: Fetch real data from API
-  const mockRequests: BookingRequest[] = [
-    {
-      id: '1',
-      studentId: 'student1',
-      supervisorId: 'sup1',
-      status: 'PENDING',
-      createdAt: new Date(),
-      student: {
-        id: 'student1',
-        email: 'student1@uni.edu',
-        name: 'John Doe',
-        role: 'STUDENT',
-        createdAt: new Date(),
-      },
-    },
-    {
-      id: '2',
-      studentId: 'student2',
-      supervisorId: 'sup1',
-      status: 'PENDING',
-      createdAt: new Date(Date.now() - 86400000),
-      student: {
-        id: 'student2',
-        email: 'student2@uni.edu',
-        name: 'Jane Smith',
-        role: 'STUDENT',
-        createdAt: new Date(),
-      },
-    },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const mockAssignedStudents: Assignment[] = [
-    {
-      id: '1',
-      studentId: 'student3',
-      supervisorId: 'sup1',
-      assignedAt: new Date(Date.now() - 86400000 * 30),
-      student: {
-        id: 'student3',
-        email: 'student3@uni.edu',
-        name: 'Alice Johnson',
-        role: 'STUDENT',
-        createdAt: new Date(),
-      },
-    },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleAccept = (requestId: string) => {
-    // TODO: Call API to accept request
-    alert(`Accepted request ${requestId}`);
+      // Fetch pending requests
+      const requestsData = await supervisorAPI.getRequests('PENDING');
+      setPendingRequests(requestsData.requests);
+
+      // Fetch assigned students
+      const assignmentsData = await assignmentAPI.getSupervisorAssignments();
+      setAssignedStudents(assignmentsData.assignments);
+
+      // Fetch supervisor stats
+      const statsData = await supervisorAPI.getStats();
+      setStats({
+        maxSlots: statsData.stats.maxSlots,
+        currentSlots: statsData.stats.currentSlots,
+      });
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDecline = (requestId: string) => {
-    // TODO: Call API to decline request
-    alert(`Declined request ${requestId}`);
+  const handleAccept = async (requestId: string) => {
+    try {
+      await supervisorAPI.acceptRequest(requestId);
+      // Refresh data after accepting
+      fetchDashboardData();
+      alert('Request accepted successfully!');
+    } catch (err) {
+      console.error('Error accepting request:', err);
+      alert(err instanceof Error ? err.message : 'Failed to accept request');
+    }
   };
+
+  const handleDecline = async (requestId: string) => {
+    try {
+      await supervisorAPI.declineRequest(requestId);
+      // Refresh data after declining
+      fetchDashboardData();
+      alert('Request declined successfully!');
+    } catch (err) {
+      console.error('Error declining request:', err);
+      alert(err instanceof Error ? err.message : 'Failed to decline request');
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">Error: {error}</p>
+            <button
+              onClick={fetchDashboardData}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -89,12 +126,12 @@ export default function SupervisorDashboard() {
                   Pending Requests
                 </h2>
                 <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                  {mockRequests.length}
+                  {pendingRequests.length}
                 </span>
               </div>
 
               <RequestList
-                requests={mockRequests}
+                requests={pendingRequests}
                 onAccept={handleAccept}
                 onDecline={handleDecline}
                 isSupervisor={true}
@@ -107,13 +144,13 @@ export default function SupervisorDashboard() {
                 Assigned Students
               </h2>
 
-              {mockAssignedStudents.length === 0 ? (
+              {assignedStudents.length === 0 ? (
                 <p className="text-gray-600 text-center py-8">
                   No students assigned yet
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {mockAssignedStudents.map((assignment) => (
+                  {assignedStudents.map((assignment) => (
                     <div
                       key={assignment.id}
                       className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition"
@@ -151,18 +188,20 @@ export default function SupervisorDashboard() {
                 <div>
                   <p className="text-sm text-gray-600">Pending Requests</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockRequests.length}
+                    {pendingRequests.length}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Assigned Students</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {mockAssignedStudents.length}
+                    {assignedStudents.length}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Max Slots</p>
-                  <p className="text-2xl font-bold text-gray-900">5</p>
+                  <p className="text-sm text-gray-600">Available Slots</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stats.maxSlots - stats.currentSlots} / {stats.maxSlots}
+                  </p>
                 </div>
               </div>
             </div>
@@ -177,9 +216,12 @@ export default function SupervisorDashboard() {
                 <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
                   View Schedule
                 </button>
-                <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                <Link
+                  href="/supervisor/profile"
+                  className="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+                >
                   Edit Profile
-                </button>
+                </Link>
               </div>
             </div>
           </div>
