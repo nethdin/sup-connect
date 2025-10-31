@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SupervisorProfile } from '@/app/lib/types';
+import { useRouter } from 'next/navigation';
 import { SPECIALIZATIONS } from '@/app/lib/utils';
+import { supervisorAPI, studentAPI, SupervisorProfile as ApiSupervisorProfile } from '@/app/lib/api-client';
 import SupervisorCard from '@/app/components/supervisor/SupervisorCard';
+import { SupervisorProfile } from '@/app/lib/types';
 
 export default function SupervisorsPage() {
+  const router = useRouter();
   const [supervisors, setSupervisors] = useState<SupervisorProfile[]>([]);
   const [filteredSupervisors, setFilteredSupervisors] = useState<
     SupervisorProfile[]
@@ -13,49 +16,26 @@ export default function SupervisorsPage() {
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // Fetch supervisors from /api/supervisors
-    const mockSupervisors: SupervisorProfile[] = [
-      {
-        id: '1',
-        userId: 'user1',
-        specialization: 'AI/ML',
-        tags: ['deep learning', 'computer vision', 'NLP'],
-        bio: 'Passionate about machine learning and AI. 10+ years experience in the field.',
-        maxSlots: 5,
-        currentSlots: 2,
-        user: {
-          id: 'user1',
-          email: 'prof.smith@uni.edu',
-          name: 'Prof. Smith',
-          role: 'SUPERVISOR',
-          createdAt: new Date(),
-        },
-      },
-      {
-        id: '2',
-        userId: 'user2',
-        specialization: 'Web Development',
-        tags: ['React', 'Next.js', 'TypeScript'],
-        bio: 'Full-stack web developer with focus on modern frameworks.',
-        maxSlots: 4,
-        currentSlots: 4,
-        user: {
-          id: 'user2',
-          email: 'prof.jones@uni.edu',
-          name: 'Prof. Jones',
-          role: 'SUPERVISOR',
-          createdAt: new Date(),
-        },
-      },
-    ];
-
-    setSupervisors(mockSupervisors);
-    setFilteredSupervisors(mockSupervisors);
-    setIsLoading(false);
+    fetchSupervisors();
   }, []);
+  const fetchSupervisors = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await supervisorAPI.getAll();
+      setSupervisors(response.supervisors as SupervisorProfile[]);
+      setFilteredSupervisors(response.supervisors as SupervisorProfile[]);
+    } catch (err) {
+      console.error('Failed to fetch supervisors:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load supervisors');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     let filtered = supervisors;
@@ -80,9 +60,23 @@ export default function SupervisorsPage() {
     setFilteredSupervisors(filtered);
   }, [selectedSpecialization, searchTerm, supervisors]);
 
-  const handleRequest = (supervisorId: string) => {
-    // TODO: Implement booking request logic
-    alert(`Request sent to supervisor ${supervisorId}`);
+  const handleRequest = async (supervisorId: string) => {
+    try {
+      setIsSubmitting(true);
+      await studentAPI.sendRequest(supervisorId);
+      alert('Request sent successfully!');
+      // Optionally redirect to dashboard
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to send request:', err);
+      alert(err instanceof Error ? err.message : 'Failed to send request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleViewProfile = (supervisorId: string) => {
+    router.push(`/supervisors/${supervisorId}`);
   };
 
   return (
@@ -153,11 +147,33 @@ export default function SupervisorsPage() {
         {/* Supervisors Grid */}
         {isLoading ? (
           <div className="text-center py-12">
-            <p className="text-gray-600">Loading supervisors...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600 mt-4">Loading supervisors...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchSupervisors}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Try Again
+            </button>
           </div>
         ) : filteredSupervisors.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No supervisors found matching your criteria</p>
+            {(selectedSpecialization || searchTerm) && (
+              <button
+                onClick={() => {
+                  setSelectedSpecialization('');
+                  setSearchTerm('');
+                }}
+                className="mt-4 text-blue-600 hover:text-blue-700 underline"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -165,10 +181,7 @@ export default function SupervisorsPage() {
               <SupervisorCard
                 key={supervisor.id}
                 supervisor={supervisor}
-                onViewClick={() => {
-                  // TODO: Navigate to supervisor detail page
-                  alert(`View profile: ${supervisor.user?.name}`);
-                }}
+                onViewClick={() => handleViewProfile(supervisor.id)}
                 onRequestClick={handleRequest}
               />
             ))}

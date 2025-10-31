@@ -1,50 +1,77 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Assignment, Meeting, ProgressUpdate } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
 import Link from 'next/link';
+import { assignmentAPI, meetingAPI } from '@/app/lib/api-client';
 
 export default function StudentDashboard() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // TODO: Fetch real data from API
-  const mockAssignment: Assignment = {
-    id: '1',
-    studentId: 'student1',
-    supervisorId: 'sup1',
-    assignedAt: new Date(),
-    supervisor: {
-      id: 'sup1',
-      userId: 'user1',
-      specialization: 'AI/ML',
-      tags: ['machine learning', 'deep learning'],
-      bio: 'Expert in AI and machine learning',
-      maxSlots: 5,
-      currentSlots: 3,
-      user: {
-        id: 'user1',
-        email: 'prof@uni.edu',
-        name: 'Prof. Smith',
-        role: 'SUPERVISOR',
-        createdAt: new Date(),
-      },
-    },
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch assignment
+      const assignmentData = await assignmentAPI.getStudentAssignment();
+      setAssignment(assignmentData.assignment);
+
+      // Fetch upcoming meetings
+      const meetingsData = await meetingAPI.getAll(true);
+      setMeetings(meetingsData.meetings as any);
+
+      // TODO: Fetch progress updates when endpoint is ready
+      // const progressData = await progressAPI.getAll();
+      // setProgressUpdates(progressData.updates);
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const mockMeetings: Meeting[] = [
-    {
-      id: '1',
-      studentId: 'student1',
-      supervisorId: 'sup1',
-      dateTime: new Date(Date.now() + 86400000 * 3),
-      mode: 'ONLINE',
-      notes: 'Discussed project scope and deliverables',
-      createdAt: new Date(),
-    },
-  ];
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">Error: {error}</p>
+            <button
+              onClick={fetchDashboardData}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -61,7 +88,7 @@ export default function StudentDashboard() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Assignment Status */}
-            {mockAssignment ? (
+            {assignment ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Assigned Supervisor
@@ -69,14 +96,24 @@ export default function StudentDashboard() {
                 <div className="flex items-start justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">
-                      {mockAssignment.supervisor?.user?.name}
+                      {assignment.supervisor?.user?.name}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {mockAssignment.supervisor?.specialization}
+                      {assignment.supervisor?.specialization}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      {mockAssignment.supervisor?.bio}
+                      {assignment.supervisor?.bio}
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {assignment.supervisor?.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
                     Message
@@ -106,10 +143,16 @@ export default function StudentDashboard() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Upcoming Meetings
               </h2>
-              <MeetingList
-                meetings={mockMeetings}
-                onAddNotes={(id) => alert(`Add notes to meeting ${id}`)}
-              />
+              {meetings.length > 0 ? (
+                <MeetingList
+                  meetings={meetings}
+                  onAddNotes={(id) => alert(`Add notes to meeting ${id}`)}
+                />
+              ) : (
+                <p className="text-gray-600 text-center py-8">
+                  No upcoming meetings scheduled
+                </p>
+              )}
             </div>
 
             {/* Progress Updates */}
@@ -179,15 +222,21 @@ export default function StudentDashboard() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Assigned Supervisor</span>
-                  <span className="font-medium text-green-600">✓</span>
+                  <span className={`font-medium ${assignment ? 'text-green-600' : 'text-gray-400'}`}>
+                    {assignment ? '✓' : '○'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">1st Meeting Done</span>
-                  <span className="font-medium text-green-600">✓</span>
+                  <span className="text-gray-600">Meetings Scheduled</span>
+                  <span className={`font-medium ${meetings.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                    {meetings.length > 0 ? '✓' : '○'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Progress Update</span>
-                  <span className="font-medium text-gray-400">○</span>
+                  <span className="text-gray-600">Progress Updates</span>
+                  <span className={`font-medium ${progressUpdates.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                    {progressUpdates.length > 0 ? '✓' : '○'}
+                  </span>
                 </div>
               </div>
             </div>
