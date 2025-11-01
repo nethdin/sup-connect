@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PROJECT_CATEGORIES } from '@/app/lib/utils';
+import { studentAPI } from '@/app/lib/api-client';
 
 interface ProjectIdeaFormProps {
   onSubmit?: (data: ProjectIdeaData) => void;
@@ -96,28 +97,16 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
 
     setIsLoading(true);
     try {
-      // Create FormData for file upload
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('keywords', JSON.stringify(formData.keywords));
-
-      formData.attachments.forEach((file) => {
-        formDataToSend.append('attachments', file);
+      // Use the API client which includes authentication
+      await studentAPI.submitIdea({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        keywords: formData.keywords,
+        attachments: [], // TODO: Handle file uploads separately
       });
 
-      const response = await fetch('/api/student/idea', {
-        method: 'POST',
-        body: formDataToSend,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        setErrors({ submit: error.message || 'Failed to submit idea' });
-        return;
-      }
-
+      // Success! Clear form and call onSubmit callback
       onSubmit?.(formData);
       setFormData({
         title: '',
@@ -127,8 +116,12 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
         attachments: [],
       });
       setErrors({});
+      
+      // Show success message
+      alert('Project idea submitted successfully!');
     } catch (error) {
-      setErrors({ submit: 'An error occurred. Please try again.' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit idea';
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }

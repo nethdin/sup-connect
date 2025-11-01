@@ -128,12 +128,26 @@ export default function RegisterForm() {
 
       if (!response.ok) {
         const error = await response.json();
-        setErrors({ submit: error.message || 'Registration failed' });
+        setErrors({ submit: error.error || 'Registration failed' });
         return;
       }
 
-      // TODO: Redirect to login or dashboard
-      alert('Registration successful! Please log in.');
+      const data = await response.json();
+      
+      // Store token in localStorage
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
+      // Redirect based on role
+      if (data.user.role === 'SUPERVISOR') {
+        window.location.href = '/supervisor/dashboard';
+      } else if (data.user.role === 'STUDENT') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (error) {
       setErrors({ submit: 'An error occurred. Please try again.' });
     } finally {
