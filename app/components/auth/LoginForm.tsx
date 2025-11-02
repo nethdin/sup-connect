@@ -41,6 +41,8 @@ export default function LoginForm() {
     }
 
     setIsLoading(true);
+    setErrors({}); // Clear previous errors
+    
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -51,14 +53,22 @@ export default function LoginForm() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        setErrors({ submit: error.message || 'Login failed' });
+        // Handle specific error cases
+        if (response.status === 400) {
+          setErrors({ submit: data.error || 'Please fill in all required fields' });
+        } else if (response.status === 401) {
+          setErrors({ submit: data.error || 'Invalid email or password' });
+        } else if (response.status === 500) {
+          setErrors({ submit: 'Server error. Please try again later.' });
+        } else {
+          setErrors({ submit: data.error || 'Login failed. Please try again.' });
+        }
         return;
       }
 
-      const data = await response.json();
-      
       // Store token in localStorage and cookie
       if (data.token) {
         localStorage.setItem('authToken', data.token);
@@ -77,7 +87,13 @@ export default function LoginForm() {
         window.location.href = '/dashboard';
       }
     } catch (error) {
-      setErrors({ submit: 'An error occurred. Please try again.' });
+      console.error('Login error:', error);
+      // Handle network errors or other unexpected issues
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setErrors({ submit: 'Network error. Please check your internet connection and try again.' });
+      } else {
+        setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+      }
     } finally {
       setIsLoading(false);
     }
