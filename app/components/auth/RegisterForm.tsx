@@ -134,10 +134,13 @@ export default function RegisterForm() {
 
       const data = await response.json();
       
-      // Store token in localStorage
+      // Store token in localStorage and cookie
       if (data.token) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Set cookie for server-side middleware
+        document.cookie = `authToken=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
       }
       
       // Redirect based on role
