@@ -6,6 +6,7 @@ import { SPECIALIZATIONS } from '@/app/lib/utils';
 import { supervisorAPI, studentAPI, SupervisorProfile as ApiSupervisorProfile } from '@/app/lib/api-client';
 import SupervisorCard from '@/app/components/supervisor/SupervisorCard';
 import { SupervisorProfile } from '@/app/lib/types';
+import RouteGuard from '@/app/components/RouteGuard';
 
 export default function SupervisorsPage() {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function SupervisorsPage() {
     router.push(`/supervisors/${supervisorId}`);
   };
 
-  return (
+  const content = () => (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
@@ -189,5 +190,11 @@ export default function SupervisorsPage() {
         )}
       </div>
     </main>
+  );
+
+  return (
+    <RouteGuard allowedRoles={['STUDENT']}>
+      {content()}
+    </RouteGuard>
   );
 }

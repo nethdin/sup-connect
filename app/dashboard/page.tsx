@@ -5,6 +5,7 @@ import { Assignment, Meeting, ProgressUpdate } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
 import Link from 'next/link';
 import { assignmentAPI, meetingAPI } from '@/app/lib/api-client';
+import RouteGuard from '@/app/components/RouteGuard';
 
 export default function StudentDashboard() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
@@ -42,12 +43,13 @@ export default function StudentDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  const content = () => {
+    if (loading) {
+      return (
+        <main className="min-h-screen bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="mt-4 text-gray-600">Loading dashboard...</p>
           </div>
         </div>
@@ -244,5 +246,12 @@ export default function StudentDashboard() {
         </div>
       </div>
     </main>
+  );
+  };
+
+  return (
+    <RouteGuard allowedRoles={['STUDENT']}>
+      {content()}
+    </RouteGuard>
   );
 }

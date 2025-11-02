@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supervisorAPI, studentAPI, SupervisorProfile } from '@/app/lib/api-client';
+import RouteGuard from '@/app/components/RouteGuard';
 
 export default function SupervisorDetailPage() {
   const router = useRouter();
@@ -48,44 +49,45 @@ export default function SupervisorDetailPage() {
     }
   };
 
-  if (isLoading) {
+  const content = () => {
+    if (isLoading) {
+      return (
+        <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-600 mt-4">Loading supervisor details...</p>
+            </div>
+          </div>
+      </main>
+    );
+    }
+
+    if (error || !supervisor) {
+      return (
+        <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">{error || 'Supervisor not found'}</p>
+              <button
+                onClick={() => router.push('/supervisors')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Back to Supervisors
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    const availableSlots = supervisor.maxSlots - supervisor.currentSlots;
+    const isAvailable = availableSlots > 0;
+
     return (
       <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600 mt-4">Loading supervisor details...</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (error || !supervisor) {
-    return (
-      <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center py-12">
-            <p className="text-red-600 mb-4">{error || 'Supervisor not found'}</p>
-            <button
-              onClick={() => router.push('/supervisors')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Supervisors
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const availableSlots = supervisor.maxSlots - supervisor.currentSlots;
-  const isAvailable = availableSlots > 0;
-
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Back Button */}
+          {/* Back Button */}
         <button
           onClick={() => router.push('/supervisors')}
           className="mb-6 text-gray-600 hover:text-gray-900 flex items-center gap-2 transition"
@@ -227,5 +229,12 @@ export default function SupervisorDetailPage() {
         </div>
       </div>
     </main>
+    );
+  };
+
+  return (
+    <RouteGuard allowedRoles={['STUDENT']}>
+      {content()}
+    </RouteGuard>
   );
 }

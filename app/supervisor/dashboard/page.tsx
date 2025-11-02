@@ -5,6 +5,7 @@ import { BookingRequest, Assignment } from '@/app/lib/types';
 import RequestList from '@/app/components/student/RequestList';
 import { supervisorAPI, assignmentAPI } from '@/app/lib/api-client';
 import Link from 'next/link';
+import RouteGuard from '@/app/components/RouteGuard';
 
 export default function SupervisorDashboard() {
   const [pendingRequests, setPendingRequests] = useState<BookingRequest[]>([]);
@@ -72,49 +73,50 @@ export default function SupervisorDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading dashboard...</p>
+  const content = () => {
+    if (loading) {
+      return (
+        <main className="min-h-screen bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading dashboard...</p>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    if (error) {
+      return (
+        <main className="min-h-screen bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">Error: {error}</p>
+              <button
+                onClick={fetchDashboardData}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Try again
+              </button>
           </div>
         </div>
       </main>
     );
-  }
+    }
 
-  if (error) {
     return (
       <main className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">Error: {error}</p>
-            <button
-              onClick={fetchDashboardData}
-              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-            >
-              Try again
-            </button>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Supervisor Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Manage student requests and supervision
+            </p>
           </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Supervisor Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage student requests and supervision
-          </p>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -228,5 +230,12 @@ export default function SupervisorDashboard() {
         </div>
       </div>
     </main>
+  );
+  };
+
+  return (
+    <RouteGuard allowedRoles={['SUPERVISOR']}>
+      {content()}
+    </RouteGuard>
   );
 }
