@@ -1282,7 +1282,7 @@ export async function getStudentAssignment(request: NextRequest) {
       id: assignment.id,
       studentId: assignment.student_id,
       supervisorId: assignment.supervisor_id,
-      assignedAt: assignment.assigned_at,
+      assignedAt: assignment.created_at,
       supervisor: {
         id: assignment.supervisor_profile_id,
         userId: assignment.supervisor_user_id,
@@ -1348,7 +1348,7 @@ export async function getSupervisorAssignments(request: NextRequest) {
       FROM assignments a
       JOIN users u ON a.student_id = u.id
       WHERE a.supervisor_id = ?
-      ORDER BY a.assigned_at DESC
+      ORDER BY a.created_at DESC
       `,
       [profile.id]
     );
@@ -1357,7 +1357,7 @@ export async function getSupervisorAssignments(request: NextRequest) {
       id: row.id,
       studentId: row.student_id,
       supervisorId: row.supervisor_id,
-      assignedAt: row.assigned_at,
+      assignedAt: row.created_at,
       student: {
         id: row.student_user_id,
         email: row.student_email,
