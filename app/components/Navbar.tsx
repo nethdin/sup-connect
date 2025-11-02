@@ -1,12 +1,55 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { authAPI } from '@/app/lib/api-client';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'STUDENT' | 'SUPERVISOR' | 'ADMIN';
+}
 
 export default function Navbar() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Connect with auth
-  const [userRole, setUserRole] = useState<'STUDENT' | 'SUPERVISOR' | null>(null); // TODO: Connect with auth
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Check authentication status on mount
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('user');
+      
+      if (token && userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setIsLoggedIn(true);
+      } else {
+        setUser(null);
+        setIsLoggedIn(false);
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      setUser(null);
+      setIsLoggedIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    authAPI.logout();
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    router.push('/');
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -38,7 +81,7 @@ export default function Navbar() {
                   Browse Supervisors
                 </Link>
 
-                {userRole === 'STUDENT' && (
+                {user?.role === 'STUDENT' && (
                   <>
                     <Link
                       href="/dashboard"
@@ -55,24 +98,34 @@ export default function Navbar() {
                   </>
                 )}
 
-                {userRole === 'SUPERVISOR' && (
-                  <Link
-                    href="/dashboard"
-                    className="text-gray-600 hover:text-gray-900 transition"
-                  >
-                    Dashboard
-                  </Link>
+                {user?.role === 'SUPERVISOR' && (
+                  <>
+                    <Link
+                      href="/supervisor/dashboard"
+                      className="text-gray-600 hover:text-gray-900 transition"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/supervisor/profile"
+                      className="text-gray-600 hover:text-gray-900 transition"
+                    >
+                      Profile
+                    </Link>
+                  </>
                 )}
 
-                <button
-                  onClick={() => {
-                    setIsLoggedIn(false);
-                    setUserRole(null);
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                >
-                  Logout
-                </button>
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-600">
+                    {user?.name}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -134,7 +187,7 @@ export default function Navbar() {
                   Browse Supervisors
                 </Link>
 
-                {userRole === 'STUDENT' && (
+                {user?.role === 'STUDENT' && (
                   <>
                     <Link
                       href="/dashboard"
@@ -151,20 +204,28 @@ export default function Navbar() {
                   </>
                 )}
 
-                {userRole === 'SUPERVISOR' && (
-                  <Link
-                    href="/dashboard"
-                    className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
-                  >
-                    Dashboard
-                  </Link>
+                {user?.role === 'SUPERVISOR' && (
+                  <>
+                    <Link
+                      href="/supervisor/dashboard"
+                      className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/supervisor/profile"
+                      className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
+                    >
+                      Profile
+                    </Link>
+                  </>
                 )}
 
+                <div className="px-4 py-2 text-sm text-gray-600 font-medium">
+                  {user?.name}
+                </div>
                 <button
-                  onClick={() => {
-                    setIsLoggedIn(false);
-                    setUserRole(null);
-                  }}
+                  onClick={handleLogout}
                   className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 rounded transition"
                 >
                   Logout
