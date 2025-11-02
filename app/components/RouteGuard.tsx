@@ -34,6 +34,20 @@ export default function RouteGuard({
       return;
     }
 
+    // Ensure cookie is synced with localStorage for server-side middleware
+    const token = localStorage.getItem('authToken');
+    if (token && typeof document !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('authToken='))
+        ?.split('=')[1];
+      
+      // If cookie doesn't exist or doesn't match, set it
+      if (!cookieValue || cookieValue !== token) {
+        document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+      }
+    }
+
     // If specific roles are required, check user role
     if (allowedRoles && allowedRoles.length > 0) {
       const user = getClientUser();

@@ -46,6 +46,10 @@ export default function Navbar() {
   const handleLogout = () => {
     authAPI.logout();
     localStorage.removeItem('user');
+    
+    // Clear cookie as well
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    
     setIsLoggedIn(false);
     setUser(null);
     router.push('/');
