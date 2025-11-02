@@ -15,6 +15,8 @@ const getAuthToken = (): string | null => {
 export const setAuthToken = (token: string) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('authToken', token);
+    // Also set as cookie for server-side middleware (7 days expiry)
+    document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
   }
 };
 
@@ -22,6 +24,8 @@ export const setAuthToken = (token: string) => {
 export const removeAuthToken = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken');
+    // Also clear cookie
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
   }
 };
 
@@ -105,6 +109,10 @@ export const authAPI = {
 
   logout: () => {
     removeAuthToken();
+    // Clear cookie as well
+    if (typeof window !== 'undefined') {
+      document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    }
   },
 };
 
