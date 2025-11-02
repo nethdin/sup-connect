@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { query, queryOne } from '@/app/lib/db';
+import { query, queryOne, getPool } from '@/app/lib/db';
 import {
   User,
   UserRole,
@@ -275,6 +275,15 @@ export async function loginUser(request: NextRequest) {
 
 export async function getAllSupervisors(request: NextRequest) {
   try {
+    // BUSINESS RULE: Must be authenticated (student or supervisor can view)
+    const auth = getUserFromRequest(request);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const url = new URL(request.url);
     const specialization = url.searchParams.get('specialization');
     const available = url.searchParams.get('available');
@@ -474,6 +483,44 @@ export async function submitProjectIdea(request: NextRequest) {
       );
     }
 
+    // BUSINESS RULE: Check if student already has an active project idea
+    const existingIdea = await queryOne<any>(
+      'SELECT * FROM project_ideas WHERE student_id = ?',
+      [auth.userId]
+    );
+
+    if (existingIdea) {
+      // Update existing idea instead of creating a new one
+      await query(
+        'UPDATE project_ideas SET title = ?, description = ?, category = ?, keywords = ?, attachments = ?, created_at = NOW() WHERE id = ?',
+        [
+          title,
+          description,
+          category,
+          JSON.stringify(keywords || []),
+          JSON.stringify(attachments || []),
+          existingIdea.id
+        ]
+      );
+
+      const updatedIdea = {
+        id: existingIdea.id,
+        studentId: auth.userId,
+        title,
+        description,
+        category,
+        keywords: keywords || [],
+        attachments: attachments || [],
+        createdAt: new Date(),
+      };
+
+      return NextResponse.json({
+        message: 'Project idea updated successfully',
+        idea: updatedIdea,
+      }, { status: 200 });
+    }
+
+    // Create new idea if none exists
     const ideaId = generateId();
     await query(
       'INSERT INTO project_ideas (id, student_id, title, description, category, keywords, attachments) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -631,6 +678,32 @@ export async function sendBookingRequest(request: NextRequest) {
       );
     }
 
+    // BUSINESS RULE: Check if student already has ANY pending request
+    const existingPendingRequest = await queryOne(
+      'SELECT * FROM booking_requests WHERE student_id = ? AND status = ?',
+      [auth.userId, 'PENDING']
+    );
+
+    if (existingPendingRequest) {
+      return NextResponse.json(
+        { error: 'You already have a pending request. Please wait for a response or cancel it first.' },
+        { status: 409 }
+      );
+    }
+
+    // BUSINESS RULE: Check if student already has an assignment
+    const existingAssignment = await queryOne(
+      'SELECT * FROM assignments WHERE student_id = ?',
+      [auth.userId]
+    );
+
+    if (existingAssignment) {
+      return NextResponse.json(
+        { error: 'You already have a supervisor assigned. Cannot send new requests.' },
+        { status: 409 }
+      );
+    }
+
     // Check if supervisor exists
     const supervisor = await queryOne(
       'SELECT * FROM supervisor_profiles WHERE id = ?',
@@ -641,19 +714,6 @@ export async function sendBookingRequest(request: NextRequest) {
       return NextResponse.json(
         { error: 'Supervisor not found' },
         { status: 404 }
-      );
-    }
-
-    // Check if student already has a pending request
-    const existingRequest = await queryOne(
-      'SELECT * FROM booking_requests WHERE student_id = ? AND supervisor_id = ? AND status = ?',
-      [auth.userId, supervisorId, 'PENDING']
-    );
-
-    if (existingRequest) {
-      return NextResponse.json(
-        { error: 'You already have a pending request with this supervisor' },
-        { status: 409 }
       );
     }
 
@@ -692,6 +752,60 @@ export async function sendBookingRequest(request: NextRequest) {
     console.error('Send request error:', error);
     return NextResponse.json(
       { error: 'Failed to send booking request' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function cancelBookingRequest(requestId: string, request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'STUDENT') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Find booking request belonging to the student
+    const bookingRequest = await queryOne<any>(
+      'SELECT * FROM booking_requests WHERE id = ? AND student_id = ?',
+      [requestId, auth.userId]
+    );
+
+    if (!bookingRequest) {
+      return NextResponse.json(
+        { error: 'Booking request not found' },
+        { status: 404 }
+      );
+    }
+
+    if (bookingRequest.status !== 'PENDING') {
+      return NextResponse.json(
+        { error: 'Can only cancel pending requests' },
+        { status: 400 }
+      );
+    }
+
+    // Cancel the request
+    await query(
+      'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
+      ['CANCELLED', requestId]
+    );
+
+    const cancelledRequest = await queryOne<any>(
+      'SELECT * FROM booking_requests WHERE id = ?',
+      [requestId]
+    );
+
+    return NextResponse.json({
+      message: 'Request cancelled successfully',
+      request: cancelledRequest,
+    });
+  } catch (error) {
+    console.error('Cancel request error:', error);
+    return NextResponse.json(
+      { error: 'Failed to cancel booking request' },
       { status: 500 }
     );
   }
@@ -776,86 +890,118 @@ export async function getSupervisorRequests(request: NextRequest) {
 }
 
 export async function acceptBookingRequest(requestId: string, request: NextRequest) {
+  const connection = await getPool().getConnection();
   try {
+    await connection.beginTransaction();
+
     const auth = getUserFromRequest(request);
     if (!auth || auth.role !== 'SUPERVISOR') {
+      await connection.rollback();
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Get supervisor profile
-    const profile = await queryOne<any>(
-      'SELECT * FROM supervisor_profiles WHERE user_id = ?',
+    // Get supervisor profile with row lock
+    const [profileRows] = await connection.query<any[]>(
+      'SELECT * FROM supervisor_profiles WHERE user_id = ? FOR UPDATE',
       [auth.userId]
     );
 
-    if (!profile) {
+    if (!profileRows || profileRows.length === 0) {
+      await connection.rollback();
       return NextResponse.json(
         { error: 'Supervisor profile not found' },
         { status: 404 }
       );
     }
 
-    // Find booking request
-    const bookingRequest = await queryOne<any>(
-      'SELECT * FROM booking_requests WHERE id = ? AND supervisor_id = ?',
+    const profile = profileRows[0];
+
+    // Find booking request with lock
+    const [bookingRows] = await connection.query<any[]>(
+      'SELECT * FROM booking_requests WHERE id = ? AND supervisor_id = ? FOR UPDATE',
       [requestId, profile.id]
     );
 
-    if (!bookingRequest) {
+    if (!bookingRows || bookingRows.length === 0) {
+      await connection.rollback();
       return NextResponse.json(
         { error: 'Booking request not found' },
         { status: 404 }
       );
     }
 
+    const bookingRequest = bookingRows[0];
+
     if (bookingRequest.status !== 'PENDING') {
+      await connection.rollback();
       return NextResponse.json(
         { error: 'Request has already been processed' },
         { status: 400 }
       );
     }
 
-    // Check if slots are available
+    // BUSINESS RULE: Check if slots are available (with locked data)
     if (profile.current_slots >= profile.max_slots) {
-      await query(
+      await connection.query(
         'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
         ['SLOT_FULL', requestId]
       );
+      await connection.commit();
       return NextResponse.json(
         { error: 'No slots available' },
         { status: 409 }
       );
     }
 
-    // Accept request and increment slots
-    await query(
+    // Accept the request
+    await connection.query(
       'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
       ['ACCEPTED', requestId]
     );
     
-    await query(
+    // Increment supervisor slots
+    await connection.query(
       'UPDATE supervisor_profiles SET current_slots = current_slots + 1 WHERE id = ?',
       [profile.id]
     );
 
-    const updatedRequest = await queryOne<any>(
+    // BUSINESS RULE: Create assignment for the student
+    const assignmentId = generateId();
+    await connection.query(
+      'INSERT INTO assignments (id, student_id, supervisor_id, created_at) VALUES (?, ?, ?, NOW())',
+      [assignmentId, bookingRequest.student_id, profile.id]
+    );
+
+    // BUSINESS RULE: Auto-decline all other pending requests from this student
+    await connection.query(
+      'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE student_id = ? AND status = ? AND id != ?',
+      ['DECLINED', bookingRequest.student_id, 'PENDING', requestId]
+    );
+
+    await connection.commit();
+
+    const [updatedRows] = await connection.query<any[]>(
       'SELECT * FROM booking_requests WHERE id = ?',
       [requestId]
     );
 
     return NextResponse.json({
       message: 'Request accepted successfully',
-      request: updatedRequest,
+      request: updatedRows[0],
+      assignmentId: assignmentId,
     });
   } catch (error) {
+    await connection.rollback();
     console.error('Accept request error:', error);
     return NextResponse.json(
       { error: 'Failed to accept request' },
       { status: 500 }
     );
+  } finally {
+    connection.release();
   }
 }
 
