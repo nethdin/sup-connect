@@ -887,8 +887,8 @@ export async function getSupervisorRequests(request: NextRequest) {
         title: row.project_title,
         description: row.project_description,
         category: row.project_category,
-        keywords: JSON.parse(row.project_keywords || '[]'),
-        attachments: JSON.parse(row.project_attachments || '[]'),
+        keywords: parseTags(row.project_keywords),
+        attachments: parseTags(row.project_attachments),
         createdAt: row.project_created_at,
       } : null,
     }));
