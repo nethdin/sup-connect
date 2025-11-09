@@ -69,6 +69,7 @@ export interface Assignment {
   studentId: string;
   supervisorId: string;
   assignedAt: Date;
+  canEditIdea: boolean;
   student?: User;
   supervisor?: SupervisorProfile;
 }
