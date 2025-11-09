@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PROJECT_CATEGORIES } from '@/app/lib/utils';
-import { studentAPI } from '@/app/lib/api-client';
+import { studentAPI, ProjectIdea } from '@/app/lib/api-client';
 
 interface ProjectIdeaFormProps {
   onSubmit?: (data: ProjectIdeaData) => void;
+  initialData?: ProjectIdea | null;
+  isEditing?: boolean;
 }
 
 interface ProjectIdeaData {
@@ -16,7 +18,7 @@ interface ProjectIdeaData {
   attachments: File[];
 }
 
-export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
+export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = false }: ProjectIdeaFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,6 +29,19 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load initial data if provided
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title || '',
+        description: initialData.description || '',
+        category: initialData.category || '',
+        keywords: initialData.keywords || [],
+        attachments: [],
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -98,7 +113,7 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
     setIsLoading(true);
     try {
       // Use the API client which includes authentication
-      await studentAPI.submitIdea({
+      const result = await studentAPI.submitIdea({
         title: formData.title,
         description: formData.description,
         category: formData.category,
@@ -108,17 +123,22 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
 
       // Success! Clear form and call onSubmit callback
       onSubmit?.(formData);
-      setFormData({
-        title: '',
-        description: '',
-        category: '',
-        keywords: [],
-        attachments: [],
-      });
+      
+      if (!isEditing) {
+        // Only clear form on new submission
+        setFormData({
+          title: '',
+          description: '',
+          category: '',
+          keywords: [],
+          attachments: [],
+        });
+      }
+      
       setErrors({});
       
       // Show success message
-      alert('Project idea submitted successfully!');
+      alert(isEditing ? 'Project idea updated successfully!' : 'Project idea submitted successfully!');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit idea';
       setErrors({ submit: errorMessage });
@@ -311,7 +331,7 @@ export default function ProjectIdeaForm({ onSubmit }: ProjectIdeaFormProps) {
         disabled={isLoading}
         className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
       >
-        {isLoading ? 'Submitting...' : 'Submit Project Idea'}
+        {isLoading ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Project Idea' : 'Submit Project Idea')}
       </button>
     </form>
   );
