@@ -195,6 +195,15 @@ export const supervisorAPI = {
   }> => {
     return apiRequest('/supervisor/stats');
   },
+
+  toggleStudentEditPermission: async (studentId: string): Promise<{
+    message: string;
+    canEditIdea: boolean;
+  }> => {
+    return apiRequest(`/supervisor/assignments/${studentId}/toggle-edit`, {
+      method: 'POST',
+    });
+  },
 };
 
 // ============================================
@@ -213,6 +222,13 @@ export interface ProjectIdea {
 }
 
 export const studentAPI = {
+  getIdea: async (): Promise<{
+    projectIdea: ProjectIdea | null;
+    message?: string;
+  }> => {
+    return apiRequest('/student/idea');
+  },
+
   submitIdea: async (data: {
     title: string;
     description: string;
