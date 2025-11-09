@@ -60,6 +60,7 @@ export interface BookingRequest {
   respondedAt?: Date;
   student?: User;
   supervisor?: SupervisorProfile;
+  projectIdea?: StudentProjectIdea;
 }
 
 // Assignment
