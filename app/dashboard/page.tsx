@@ -4,15 +4,18 @@ import { useState, useEffect } from 'react';
 import { Assignment, Meeting, ProgressUpdate } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
 import Link from 'next/link';
-import { assignmentAPI, meetingAPI } from '@/app/lib/api-client';
+import { assignmentAPI, meetingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
 import RouteGuard from '@/app/components/RouteGuard';
+import ProjectIdeaForm from '@/app/components/student/ProjectIdeaForm';
 
 export default function StudentDashboard() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
+  const [projectIdea, setProjectIdea] = useState<ProjectIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -26,6 +29,10 @@ export default function StudentDashboard() {
       // Fetch assignment
       const assignmentData = await assignmentAPI.getStudentAssignment();
       setAssignment(assignmentData.assignment);
+
+      // Fetch project idea
+      const ideaData = await studentAPI.getIdea();
+      setProjectIdea(ideaData.projectIdea);
 
       // Fetch upcoming meetings
       const meetingsData = await meetingAPI.getAll(true);
@@ -41,6 +48,11 @@ export default function StudentDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleIdeaUpdated = () => {
+    setShowEditForm(false);
+    fetchDashboardData(); // Refresh to show updated idea
   };
 
   const content = () => {
@@ -128,17 +140,125 @@ export default function StudentDashboard() {
                   Not Yet Assigned
                 </h2>
                 <p className="text-gray-600 mb-4">
-                  You haven't been assigned a supervisor yet. Submit your project
-                  idea to get started.
+                  You haven't been assigned a supervisor yet. 
+                  {!projectIdea && ' Submit your project idea to get started.'}
                 </p>
-                <Link
-                  href="/student/idea"
-                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  Submit Project Idea
-                </Link>
+                {!projectIdea && (
+                  <Link
+                    href="/student/idea"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Submit Project Idea
+                  </Link>
+                )}
               </div>
             )}
+
+            {/* Project Idea Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  My Project Idea
+                </h2>
+                {projectIdea && !showEditForm && (
+                  // Only show edit button if no assignment OR if assignment allows editing
+                  (!assignment || assignment.canEditIdea) ? (
+                    <button
+                      onClick={() => setShowEditForm(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                    >
+                      Edit Idea
+                    </button>
+                  ) : (
+                    <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+                      🔒 Editing Locked
+                    </span>
+                  )
+                )}
+              </div>
+
+              {/* Show info banner if editing is locked */}
+              {assignment && !assignment.canEditIdea && projectIdea && !showEditForm && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ℹ️ Your project idea is locked after supervisor acceptance. Contact your supervisor to request editing permission.
+                  </p>
+                </div>
+              )}
+
+              {showEditForm ? (
+                <div>
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      Update your project idea below. Changes will be saved immediately.
+                    </p>
+                  </div>
+                  <ProjectIdeaForm
+                    initialData={projectIdea}
+                    isEditing={true}
+                    onSubmit={handleIdeaUpdated}
+                  />
+                  <button
+                    onClick={() => setShowEditForm(false)}
+                    className="mt-4 px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : projectIdea ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg">
+                      {projectIdea.title}
+                    </h3>
+                    <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                      {projectIdea.category}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-1">Description</h4>
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {projectIdea.description}
+                    </p>
+                  </div>
+
+                  {projectIdea.keywords && projectIdea.keywords.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Keywords</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {projectIdea.keywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      Last updated: {new Date(projectIdea.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    You haven't submitted a project idea yet.
+                  </p>
+                  <Link
+                    href="/student/idea"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Submit Project Idea
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Upcoming Meetings */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
