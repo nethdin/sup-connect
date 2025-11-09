@@ -120,17 +120,20 @@ CREATE TABLE `booking_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- ASSIGNMENTS TABLE (no changes needed - already correct)
+-- ASSIGNMENTS TABLE - UPDATED
 -- ============================================
+-- Added can_edit_idea field to control student's ability to edit project idea
 DROP TABLE IF EXISTS `assignments`;
 CREATE TABLE `assignments` (
   `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `student_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `supervisor_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `can_edit_idea` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `student_id` (`student_id`),
   KEY `idx_supervisor_id` (`supervisor_id`),
+  KEY `idx_can_edit_idea` (`can_edit_idea`),
   CONSTRAINT `assignments_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `assignments_ibfk_2` FOREIGN KEY (`supervisor_id`) REFERENCES `supervisor_profiles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
