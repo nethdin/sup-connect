@@ -483,7 +483,21 @@ export async function submitProjectIdea(request: NextRequest) {
       );
     }
 
-    // BUSINESS RULE: Check if student already has an active project idea
+    // BUSINESS RULE: Check if student has an assignment and if they can edit
+    const assignment = await queryOne<any>(
+      'SELECT id, supervisor_id, can_edit_idea FROM assignments WHERE student_id = ?',
+      [auth.userId]
+    );
+
+    // If student has an assignment and editing is not allowed, prevent update
+    if (assignment && !assignment.can_edit_idea) {
+      return NextResponse.json(
+        { error: 'You cannot edit your project idea after supervisor acceptance. Please contact your supervisor for permission.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if student already has an active project idea
     const existingIdea = await queryOne<any>(
       'SELECT * FROM project_ideas WHERE student_id = ?',
       [auth.userId]
@@ -554,6 +568,52 @@ export async function submitProjectIdea(request: NextRequest) {
     console.error('Submit idea error:', error);
     return NextResponse.json(
       { error: 'Failed to submit project idea' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function getStudentProjectIdea(request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'STUDENT') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get student's project idea
+    const studentIdea = await queryOne<any>(
+      'SELECT * FROM project_ideas WHERE student_id = ?',
+      [auth.userId]
+    );
+
+    if (!studentIdea) {
+      return NextResponse.json({
+        projectIdea: null,
+        message: 'No project idea found',
+      });
+    }
+
+    const idea = {
+      id: studentIdea.id,
+      studentId: studentIdea.student_id,
+      title: studentIdea.title,
+      description: studentIdea.description,
+      category: studentIdea.category,
+      keywords: parseTags(studentIdea.keywords),
+      attachments: parseTags(studentIdea.attachments),
+      createdAt: studentIdea.created_at,
+    };
+
+    return NextResponse.json({
+      projectIdea: idea,
+    });
+  } catch (error) {
+    console.error('Get project idea error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch project idea' },
       { status: 500 }
     );
   }
@@ -986,9 +1046,10 @@ export async function acceptBookingRequest(requestId: string, request: NextReque
     );
 
     // BUSINESS RULE: Create assignment for the student
+    // can_edit_idea is set to 0 (false) by default, preventing edits after assignment
     const assignmentId = generateId();
     await connection.query(
-      'INSERT INTO assignments (id, student_id, supervisor_id, created_at) VALUES (?, ?, ?, NOW())',
+      'INSERT INTO assignments (id, student_id, supervisor_id, can_edit_idea, created_at) VALUES (?, ?, ?, 0, NOW())',
       [assignmentId, bookingRequest.student_id, profile.id]
     );
 
@@ -1300,6 +1361,7 @@ export async function getStudentAssignment(request: NextRequest) {
       studentId: assignment.student_id,
       supervisorId: assignment.supervisor_id,
       assignedAt: assignment.created_at,
+      canEditIdea: Boolean(assignment.can_edit_idea),
       supervisor: {
         id: assignment.supervisor_profile_id,
         userId: assignment.supervisor_user_id,
@@ -1375,6 +1437,7 @@ export async function getSupervisorAssignments(request: NextRequest) {
       studentId: row.student_id,
       supervisorId: row.supervisor_id,
       assignedAt: row.created_at,
+      canEditIdea: Boolean(row.can_edit_idea),
       student: {
         id: row.student_user_id,
         email: row.student_email,
@@ -1432,6 +1495,63 @@ export async function getSupervisorStats(request: NextRequest) {
     console.error('Get supervisor stats error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch stats' },
+      { status: 500 }
+    );
+  }
+}
+
+// Toggle student's project idea edit permission
+export async function toggleStudentEditPermission(studentId: string, request: NextRequest) {
+  try {
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'SUPERVISOR') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get supervisor profile
+    const profile = await queryOne<any>(
+      'SELECT * FROM supervisor_profiles WHERE user_id = ?',
+      [auth.userId]
+    );
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Supervisor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get the assignment
+    const assignment = await queryOne<any>(
+      'SELECT * FROM assignments WHERE student_id = ? AND supervisor_id = ?',
+      [studentId, profile.id]
+    );
+
+    if (!assignment) {
+      return NextResponse.json(
+        { error: 'Assignment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Toggle the can_edit_idea flag
+    const newValue = assignment.can_edit_idea ? 0 : 1;
+    await query(
+      'UPDATE assignments SET can_edit_idea = ? WHERE id = ?',
+      [newValue, assignment.id]
+    );
+
+    return NextResponse.json({
+      message: `Edit permission ${newValue ? 'granted' : 'revoked'} successfully`,
+      canEditIdea: Boolean(newValue),
+    });
+  } catch (error) {
+    console.error('Toggle edit permission error:', error);
+    return NextResponse.json(
+      { error: 'Failed to toggle edit permission' },
       { status: 500 }
     );
   }
