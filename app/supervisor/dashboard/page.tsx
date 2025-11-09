@@ -127,10 +127,18 @@ export default function SupervisorDashboard() {
                 <h2 className="text-xl font-semibold text-gray-900">
                   Pending Requests
                 </h2>
-                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                  {pendingRequests.length}
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                  {pendingRequests.length} pending
                 </span>
               </div>
+
+              {pendingRequests.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    💡 Click "View Details" on any request to see the student's project idea before making a decision.
+                  </p>
+                </div>
+              )}
 
               <RequestList
                 requests={pendingRequests}
