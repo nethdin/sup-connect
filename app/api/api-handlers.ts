@@ -846,9 +846,17 @@ export async function getSupervisorRequests(request: NextRequest) {
         br.*,
         u.id as student_user_id,
         u.email as student_email,
-        u.name as student_name
+        u.name as student_name,
+        pi.id as project_id,
+        pi.title as project_title,
+        pi.description as project_description,
+        pi.category as project_category,
+        pi.keywords as project_keywords,
+        pi.attachments as project_attachments,
+        pi.created_at as project_created_at
       FROM booking_requests br
       JOIN users u ON br.student_id = u.id
+      LEFT JOIN project_ideas pi ON pi.student_id = br.student_id
       WHERE br.supervisor_id = ?
     `;
     const params: any[] = [profile.id];
@@ -874,6 +882,15 @@ export async function getSupervisorRequests(request: NextRequest) {
         email: row.student_email,
         name: row.student_name,
       },
+      projectIdea: row.project_id ? {
+        id: row.project_id,
+        title: row.project_title,
+        description: row.project_description,
+        category: row.project_category,
+        keywords: JSON.parse(row.project_keywords || '[]'),
+        attachments: JSON.parse(row.project_attachments || '[]'),
+        createdAt: row.project_created_at,
+      } : null,
     }));
 
     return NextResponse.json({
