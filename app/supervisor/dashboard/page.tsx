@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BookingRequest, Assignment } from '@/app/lib/types';
 import RequestList from '@/app/components/student/RequestList';
+import AssignmentList from '@/app/components/supervisor/AssignmentList';
 import { supervisorAPI, assignmentAPI } from '@/app/lib/api-client';
 import Link from 'next/link';
 import RouteGuard from '@/app/components/RouteGuard';
@@ -154,38 +155,13 @@ export default function SupervisorDashboard() {
                 Assigned Students
               </h2>
 
-              {assignedStudents.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">
-                  No students assigned yet
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  🔐 Control whether students can edit their project ideas after assignment. By default, editing is locked after acceptance.
                 </p>
-              ) : (
-                <div className="space-y-4">
-                  {assignedStudents.map((assignment) => (
-                    <div
-                      key={assignment.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">
-                            {assignment.student?.name}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {assignment.student?.email}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Assigned on{' '}
-                            {new Date(assignment.assignedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
+
+              <AssignmentList />
             </div>
           </div>
 
