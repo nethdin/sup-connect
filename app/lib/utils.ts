@@ -120,3 +120,36 @@ export function getInitials(name: string): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+/**
+ * Get the user's default dashboard URL based on their role
+ */
+export function getUserDashboardUrl(role: string): string {
+  if (role === 'SUPERVISOR') {
+    return '/supervisor/dashboard';
+  } else if (role === 'STUDENT') {
+    return '/dashboard';
+  } else {
+    return '/dashboard';
+  }
+}
+
+/**
+ * Check if user is logged in and return their info
+ */
+export function getLoggedInUser(): { role: string; id: string; name: string; email: string } | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const authToken = localStorage.getItem('authToken');
+    const userStr = localStorage.getItem('user');
+    
+    if (authToken && userStr) {
+      return JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error('Error getting logged in user:', error);
+  }
+  
+  return null;
+}
