@@ -1,11 +1,21 @@
-import LoginForm from '@/app/components/auth/LoginForm';
+'use client';
 
-export const metadata = {
-  title: 'Login | Sup-Connect',
-  description: 'Sign in to your Sup-Connect account',
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import LoginForm from '@/app/components/auth/LoginForm';
+import { getLoggedInUser, getUserDashboardUrl } from '@/app/lib/utils';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect if user is already logged in
+    const user = getLoggedInUser();
+    if (user) {
+      router.push(getUserDashboardUrl(user.role));
+    }
+  }, [router]);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
