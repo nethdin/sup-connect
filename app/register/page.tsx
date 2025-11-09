@@ -1,11 +1,21 @@
-import RegisterForm from '@/app/components/auth/RegisterForm';
+'use client';
 
-export const metadata = {
-  title: 'Register | Sup-Connect',
-  description: 'Create your Sup-Connect account',
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import RegisterForm from '@/app/components/auth/RegisterForm';
+import { getLoggedInUser, getUserDashboardUrl } from '@/app/lib/utils';
 
 export default function RegisterPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect if user is already logged in
+    const user = getLoggedInUser();
+    if (user) {
+      router.push(getUserDashboardUrl(user.role));
+    }
+  }, [router]);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
