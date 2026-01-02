@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Assignment, Meeting } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
 import Link from 'next/link';
+import { useToast } from '@/app/context/ToastContext';
 import { assignmentAPI, meetingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
 import RouteGuard from '@/app/components/RouteGuard';
 import ProjectIdeaForm from '@/app/components/student/ProjectIdeaForm';
@@ -16,6 +17,7 @@ interface ProgressUpdate {
 }
 
 export default function StudentDashboard() {
+  const { addToast } = useToast();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
@@ -275,7 +277,7 @@ export default function StudentDashboard() {
                 {meetings.length > 0 ? (
                   <MeetingList
                     meetings={meetings}
-                    onAddNotes={(id) => alert(`Add notes to meeting ${id}`)}
+                    onAddNotes={(id) => addToast(`Add notes to meeting ${id}`, 'info')}
                   />
                 ) : (
                   <p className="text-gray-600 text-center py-8">

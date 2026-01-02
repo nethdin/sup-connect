@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Assignment } from '@/app/lib/types';
 import { assignmentAPI, supervisorAPI } from '@/app/lib/api-client';
+import { useToast } from '@/app/context/ToastContext';
 
 export default function AssignmentList() {
+  const { addToast } = useToast();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export default function AssignmentList() {
     try {
       setToggling(studentId);
       const result = await supervisorAPI.toggleStudentEditPermission(studentId);
-      
+
       // Update local state
       setAssignments(prevAssignments =>
         prevAssignments.map(assignment =>
@@ -42,10 +44,10 @@ export default function AssignmentList() {
         )
       );
 
-      alert(result.message);
+      addToast(result.message, 'success');
     } catch (err) {
       console.error('Error toggling permission:', err);
-      alert(err instanceof Error ? err.message : 'Failed to toggle permission');
+      addToast(err instanceof Error ? err.message : 'Failed to toggle permission', 'error');
     } finally {
       setToggling(null);
     }
@@ -100,17 +102,16 @@ export default function AssignmentList() {
               <p className="text-xs text-gray-500 mt-2">
                 Assigned: {new Date(assignment.assignedAt).toLocaleDateString()}
               </p>
-              
+
               {/* Edit Permission Status */}
               <div className="mt-4 flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-700">
                   Project Idea Editing:
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  assignment.canEditIdea
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${assignment.canEditIdea
                     ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700'
-                }`}>
+                  }`}>
                   {assignment.canEditIdea ? '✓ Allowed' : '🔒 Locked'}
                 </span>
               </div>
@@ -120,11 +121,10 @@ export default function AssignmentList() {
             <button
               onClick={() => handleTogglePermission(assignment.studentId)}
               disabled={toggling === assignment.studentId}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                assignment.canEditIdea
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${assignment.canEditIdea
                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {toggling === assignment.studentId ? (
                 <span className="flex items-center gap-2">

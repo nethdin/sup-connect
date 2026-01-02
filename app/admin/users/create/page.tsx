@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import RouteGuard from '@/app/components/RouteGuard';
 import { SPECIALIZATIONS } from '@/app/lib/utils';
+import { useToast } from '@/app/context/ToastContext';
 
 type UserRole = 'STUDENT' | 'SUPERVISOR' | 'ADMIN' | 'SUPER_ADMIN';
 
@@ -26,6 +27,7 @@ interface FormData {
 
 export default function CreateUserPage() {
     const router = useRouter();
+    const { addToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [tagInput, setTagInput] = useState('');
@@ -82,10 +84,11 @@ export default function CreateUserPage() {
                 throw new Error(data.error || 'Failed to create user');
             }
 
-            alert('User created successfully!');
+            addToast('User created successfully!', 'success');
             router.push('/admin/users');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create user');
+            addToast(err instanceof Error ? err.message : 'Failed to create user', 'error');
         } finally {
             setLoading(false);
         }

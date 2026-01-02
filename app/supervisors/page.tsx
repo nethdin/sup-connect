@@ -7,9 +7,11 @@ import { supervisorAPI, studentAPI, SupervisorProfile as ApiSupervisorProfile } 
 import SupervisorCard from '@/app/components/supervisor/SupervisorCard';
 import { SupervisorProfile } from '@/app/lib/types';
 import RouteGuard from '@/app/components/RouteGuard';
+import { useToast } from '@/app/context/ToastContext';
 
 export default function SupervisorsPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [supervisors, setSupervisors] = useState<SupervisorProfile[]>([]);
   const [filteredSupervisors, setFilteredSupervisors] = useState<
     SupervisorProfile[]
@@ -65,12 +67,12 @@ export default function SupervisorsPage() {
     try {
       setIsSubmitting(true);
       await studentAPI.sendRequest(supervisorId);
-      alert('Request sent successfully!');
+      addToast('Request sent successfully!', 'success');
       // Optionally redirect to dashboard
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to send request:', err);
-      alert(err instanceof Error ? err.message : 'Failed to send request');
+      addToast(err instanceof Error ? err.message : 'Failed to send request', 'error');
     } finally {
       setIsSubmitting(false);
     }

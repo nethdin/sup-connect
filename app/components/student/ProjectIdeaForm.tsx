@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PROJECT_CATEGORIES } from '@/app/lib/utils';
 import { studentAPI, ProjectIdea } from '@/app/lib/api-client';
+import { useToast } from '@/app/context/ToastContext';
 
 interface ProjectIdeaFormProps {
   onSubmit?: (data: ProjectIdeaData) => void;
@@ -19,6 +20,7 @@ interface ProjectIdeaData {
 }
 
 export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = false }: ProjectIdeaFormProps) {
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -123,7 +125,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
 
       // Success! Clear form and call onSubmit callback
       onSubmit?.(formData);
-      
+
       if (!isEditing) {
         // Only clear form on new submission
         setFormData({
@@ -134,11 +136,11 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           attachments: [],
         });
       }
-      
+
       setErrors({});
-      
+
       // Show success message
-      alert(isEditing ? 'Project idea updated successfully!' : 'Project idea submitted successfully!');
+      addToast(isEditing ? 'Project idea updated successfully!' : 'Project idea submitted successfully!', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit idea';
       setErrors({ submit: errorMessage });
@@ -169,9 +171,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           value={formData.title}
           onChange={handleChange}
           placeholder="Plant Disease Detection using CNN"
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            errors.title ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.title ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.title && (
           <p className="mt-1 text-sm text-red-600">{errors.title}</p>
@@ -198,9 +199,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           onChange={handleChange}
           rows={6}
           placeholder="Describe your project idea in 150-300 characters. Include main goals, approach, and expected outcomes..."
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            errors.description ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.description ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         {errors.description && (
           <p className="mt-1 text-sm text-red-600">{errors.description}</p>
@@ -220,9 +220,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           name="category"
           value={formData.category}
           onChange={handleChange}
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            errors.category ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.category ? 'border-red-500' : 'border-gray-300'
+            }`}
         >
           <option value="">Select a category</option>
           {PROJECT_CATEGORIES.map((cat) => (

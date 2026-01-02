@@ -6,6 +6,7 @@ import { studentAPI, SupervisorProfile } from '@/app/lib/api-client';
 import RecommendationList from '@/app/components/student/RecommendationList';
 import RouteGuard from '@/app/components/RouteGuard';
 import Link from 'next/link';
+import { useToast } from '@/app/context/ToastContext';
 
 interface RecommendationItem {
     supervisor: SupervisorProfile;
@@ -18,6 +19,7 @@ type SortOption = 'match_count' | 'experience' | 'availability';
 
 export default function RecommendationsPage() {
     const router = useRouter();
+    const { addToast } = useToast();
     const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
     const [studentKeywords, setStudentKeywords] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState<SortOption>('match_count');
@@ -60,11 +62,11 @@ export default function RecommendationsPage() {
     const handleRequest = async (supervisorId: string) => {
         try {
             await studentAPI.sendRequest(supervisorId);
-            alert('Request sent successfully!');
+            addToast('Request sent successfully!', 'success');
             router.push('/dashboard');
         } catch (err) {
             console.error('Failed to send request:', err);
-            alert(err instanceof Error ? err.message : 'Failed to send request');
+            addToast(err instanceof Error ? err.message : 'Failed to send request', 'error');
         }
     };
 

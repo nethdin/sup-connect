@@ -7,8 +7,10 @@ import AssignmentList from '@/app/components/supervisor/AssignmentList';
 import { supervisorAPI, assignmentAPI } from '@/app/lib/api-client';
 import Link from 'next/link';
 import RouteGuard from '@/app/components/RouteGuard';
+import { useToast } from '@/app/context/ToastContext';
 
 export default function SupervisorDashboard() {
+  const { addToast } = useToast();
   const [pendingRequests, setPendingRequests] = useState<BookingRequest[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,7 @@ export default function SupervisorDashboard() {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      // Optional: addToast here if needed, but error state handles visual feedback
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -55,10 +58,10 @@ export default function SupervisorDashboard() {
       await supervisorAPI.acceptRequest(requestId);
       // Refresh data after accepting
       fetchDashboardData();
-      alert('Request accepted successfully!');
+      addToast('Request accepted successfully!', 'success');
     } catch (err) {
       console.error('Error accepting request:', err);
-      alert(err instanceof Error ? err.message : 'Failed to accept request');
+      addToast(err instanceof Error ? err.message : 'Failed to accept request', 'error');
     }
   };
 
@@ -67,10 +70,10 @@ export default function SupervisorDashboard() {
       await supervisorAPI.declineRequest(requestId);
       // Refresh data after declining
       fetchDashboardData();
-      alert('Request declined successfully!');
+      addToast('Request declined successfully!', 'info');
     } catch (err) {
       console.error('Error declining request:', err);
-      alert(err instanceof Error ? err.message : 'Failed to decline request');
+      addToast(err instanceof Error ? err.message : 'Failed to decline request', 'error');
     }
   };
 
@@ -100,10 +103,10 @@ export default function SupervisorDashboard() {
               >
                 Try again
               </button>
+            </div>
           </div>
-        </div>
-      </main>
-    );
+        </main>
+      );
     }
 
     return (
@@ -119,102 +122,102 @@ export default function SupervisorDashboard() {
             </p>
           </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Pending Requests */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Pending Requests
-                </h2>
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                  {pendingRequests.length} pending
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Pending Requests */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Pending Requests
+                  </h2>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                    {pendingRequests.length} pending
+                  </span>
+                </div>
+
+                {pendingRequests.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      💡 Click "View Details" on any request to see the student's project idea before making a decision.
+                    </p>
+                  </div>
+                )}
+
+                <RequestList
+                  requests={pendingRequests}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  isSupervisor={true}
+                />
               </div>
 
-              {pendingRequests.length > 0 && (
+              {/* Assigned Students */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Assigned Students
+                </h2>
+
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-800">
-                    💡 Click "View Details" on any request to see the student's project idea before making a decision.
+                    🔐 Control whether students can edit their project ideas after assignment. By default, editing is locked after acceptance.
                   </p>
                 </div>
-              )}
 
-              <RequestList
-                requests={pendingRequests}
-                onAccept={handleAccept}
-                onDecline={handleDecline}
-                isSupervisor={true}
-              />
-            </div>
-
-            {/* Assigned Students */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Assigned Students
-              </h2>
-
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  🔐 Control whether students can edit their project ideas after assignment. By default, editing is locked after acceptance.
-                </p>
-              </div>
-
-              <AssignmentList />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Statistics</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600">Pending Requests</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {pendingRequests.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Assigned Students</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {assignedStudents.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Available Slots</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stats.maxSlots - stats.currentSlots} / {stats.maxSlots}
-                  </p>
-                </div>
+                <AssignmentList />
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                  Manage Availability
-                </button>
-                <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
-                  View Schedule
-                </button>
-                <Link
-                  href="/supervisor/profile"
-                  className="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition text-sm font-medium"
-                >
-                  Edit Profile
-                </Link>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Stats */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Statistics</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Pending Requests</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {pendingRequests.length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Assigned Students</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {assignedStudents.length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Available Slots</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats.maxSlots - stats.currentSlots} / {stats.maxSlots}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div className="space-y-3">
+                  <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    Manage Availability
+                  </button>
+                  <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                    View Schedule
+                  </button>
+                  <Link
+                    href="/supervisor/profile"
+                    className="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+                  >
+                    Edit Profile
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
-  );
+      </main>
+    );
   };
 
   return (
