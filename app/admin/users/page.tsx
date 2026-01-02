@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
 import { formatDate } from '@/app/lib/utils';
 import { useToast } from '@/app/context/ToastContext';
+import { useModal } from '@/app/context/ModalContext';
 
 interface User {
     id: string;
@@ -18,6 +19,7 @@ interface User {
 export default function AdminUsersPage() {
     const router = useRouter();
     const { addToast } = useToast();
+    const { confirm } = useModal();
     const [users, setUsers] = useState<User[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,7 +76,15 @@ export default function AdminUsersPage() {
     };
 
     const handleDelete = async (userId: string, userName: string) => {
-        if (!confirm(`Are you sure you want to delete "${userName}"? This action cannot be undone.`)) {
+        const confirmed = await confirm({
+            title: 'Delete User',
+            message: `Are you sure you want to delete "${userName}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            variant: 'danger',
+        });
+
+        if (!confirmed) {
             return;
         }
 

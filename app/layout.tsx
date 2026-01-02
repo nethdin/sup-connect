@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 import { Inter } from "next/font/google";
 import { ToastProvider } from "./context/ToastContext";
+import { ModalProvider } from "./context/ModalContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.variable} font-sans bg-gray-50 text-gray-900`}>
         <ToastProvider>
-          <Navbar />
-          {children}
+          <ModalProvider>
+            <Navbar />
+            {children}
+          </ModalProvider>
         </ToastProvider>
       </body>
     </html>
