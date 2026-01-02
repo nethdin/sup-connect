@@ -81,17 +81,19 @@ export default function Navbar() {
         { href: '/supervisors', label: 'Browse Supervisors' },
         { href: '/student/recommendations', label: 'My Recommendations' },
         { href: '/student/idea', label: 'My Project Idea' },
+        { href: '/profile', label: 'My Profile' },
       ];
     } else if (user?.role === 'SUPERVISOR') {
       return [
         { href: '/supervisor/dashboard', label: 'Dashboard' },
-        { href: '/supervisor/profile', label: 'My Profile' },
+        { href: '/profile', label: 'My Profile' },
       ];
     } else if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {
       return [
         { href: '/admin/dashboard', label: 'Dashboard' },
         { href: '/admin/users', label: 'User Management' },
         { href: '/admin/users/create', label: 'Create User' },
+        { href: '/profile', label: 'My Profile' },
       ];
     }
     return [];
