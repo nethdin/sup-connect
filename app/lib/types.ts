@@ -1,5 +1,5 @@
 // Auth & User types
-export type UserRole = 'STUDENT' | 'SUPERVISOR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'SUPERVISOR' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface User {
   id: string;
@@ -29,6 +29,7 @@ export interface SupervisorProfile {
   specialization: string;
   tags: string[];
   bio: string;
+  yearsOfExperience: number;
   maxSlots: number;
   currentSlots: number;
   profilePicture?: string;
@@ -74,17 +75,6 @@ export interface Assignment {
   supervisor?: SupervisorProfile;
 }
 
-// Availability Slot
-export interface AvailabilitySlot {
-  id: string;
-  supervisorId: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  isBooked: boolean;
-  bookedBy?: string;
-}
-
 // Meeting
 export interface Meeting {
   id: string;
@@ -94,38 +84,6 @@ export interface Meeting {
   mode: 'IN_PERSON' | 'ONLINE';
   notes?: string;
   feedback?: string;
-  createdAt: Date;
-  slot?: AvailabilitySlot;
-}
-
-// Progress Update
-export interface ProgressUpdate {
-  id: string;
-  studentId: string;
-  supervisorId: string;
-  title: string;
-  description: string;
-  attachments: string[];
-  createdAt: Date;
-}
-
-// Notification
-export type NotificationType =
-  | 'REQUEST_SUBMITTED'
-  | 'REQUEST_ACCEPTED'
-  | 'REQUEST_DECLINED'
-  | 'SLOT_BOOKED'
-  | 'MEETING_SCHEDULED'
-  | 'FEEDBACK_POSTED'
-  | 'PROGRESS_UPDATE';
-
-export interface Notification {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  body: string;
-  relatedId?: string;
-  read: boolean;
   createdAt: Date;
 }
 
