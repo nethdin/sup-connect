@@ -31,8 +31,7 @@ export default function MeetingList({
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h4 className="font-semibold text-gray-900">
-                  Meeting with{' '}
-                  {meeting.slot?.supervisorId ? 'Supervisor' : 'Student'}
+                  Scheduled Meeting
                 </h4>
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                   {meeting.mode}

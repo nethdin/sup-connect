@@ -1,21 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { RecommendedSupervisor } from '@/app/lib/types';
-import { sortRecommendations } from '@/app/lib/utils';
+import { SupervisorProfile } from '@/app/lib/types';
+
+interface RecommendationItem {
+  supervisor: SupervisorProfile;
+  matchedKeywords: string[];
+  matchCount: number;
+  isFullMatch: boolean;
+}
 
 interface RecommendationListProps {
-  recommendations: RecommendedSupervisor[];
+  recommendations: RecommendationItem[];
+  sortBy: 'match_count' | 'experience' | 'availability';
+  onSortChange: (sort: 'match_count' | 'experience' | 'availability') => void;
   onRequest?: (supervisorId: string) => void;
+  fullMatchCount?: number;
+  partialMatchCount?: number;
 }
 
 export default function RecommendationList({
   recommendations,
+  sortBy,
+  onSortChange,
   onRequest,
+  fullMatchCount = 0,
+  partialMatchCount = 0,
 }: RecommendationListProps) {
-  const sorted = sortRecommendations(recommendations);
-
-  if (sorted.length === 0) {
+  if (recommendations.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">
@@ -27,19 +38,43 @@ export default function RecommendationList({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Recommended Supervisors
-        </h3>
-        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-          {sorted.length} match{sorted.length !== 1 ? 'es' : ''}
-        </span>
+      {/* Header with sort dropdown */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Recommended Supervisors
+          </h3>
+          <div className="flex gap-2">
+            {fullMatchCount > 0 && (
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                {fullMatchCount} full match{fullMatchCount !== 1 ? 'es' : ''}
+              </span>
+            )}
+            {partialMatchCount > 0 && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                {partialMatchCount} partial
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Sort dropdown */}
+        <select
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value as any)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        >
+          <option value="match_count">Sort by Match Count</option>
+          <option value="experience">Sort by Experience</option>
+          <option value="availability">Sort by Availability</option>
+        </select>
       </div>
 
-      {sorted.map((rec, index) => (
+      {recommendations.map((rec, index) => (
         <div
           key={rec.supervisor.id}
-          className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition"
+          className={`p-4 border rounded-lg hover:border-blue-300 transition ${rec.isFullMatch ? 'border-green-300 bg-green-50/30' : 'border-gray-200'
+            }`}
         >
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
@@ -50,26 +85,36 @@ export default function RecommendationList({
                 <span className="text-xs font-medium text-gray-500">
                   {rec.supervisor.specialization}
                 </span>
+                {rec.isFullMatch && (
+                  <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded">
+                    100% Match
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-600 mt-1">{rec.supervisor.bio}</p>
+              {rec.supervisor.yearsOfExperience > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {rec.supervisor.yearsOfExperience} years of experience
+                </p>
+              )}
             </div>
             <div className="text-right ml-4">
               <div className="text-2xl font-bold text-blue-600">
-                {rec.score.toFixed(1)}
+                {rec.matchCount}
               </div>
-              <p className="text-xs text-gray-500">Match Score</p>
+              <p className="text-xs text-gray-500">Keywords Matched</p>
             </div>
           </div>
 
-          {/* Matched Tags */}
-          {rec.matchedTags.length > 0 && (
+          {/* Matched Keywords */}
+          {rec.matchedKeywords.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
-              {rec.matchedTags.map((tag) => (
+              {rec.matchedKeywords.map((keyword) => (
                 <span
-                  key={tag}
+                  key={keyword}
                   className="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded"
                 >
-                  ✓ {tag}
+                  ✓ {keyword}
                 </span>
               ))}
             </div>
@@ -84,11 +129,10 @@ export default function RecommendationList({
               <div
                 className="h-2 rounded-full bg-blue-500"
                 style={{
-                  width: `${
-                    ((rec.supervisor.maxSlots - rec.supervisor.currentSlots) /
+                  width: `${((rec.supervisor.maxSlots - rec.supervisor.currentSlots) /
                       rec.supervisor.maxSlots) *
                     100
-                  }%`,
+                    }%`,
                 }}
               />
             </div>
