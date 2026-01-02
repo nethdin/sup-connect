@@ -86,7 +86,7 @@ export function getClientUser(): {
   id: string;
   email: string;
   name: string;
-  role: 'STUDENT' | 'SUPERVISOR' | 'ADMIN';
+  role: 'STUDENT' | 'SUPERVISOR' | 'ADMIN' | 'SUPER_ADMIN';
 } | null {
   if (typeof window === 'undefined') return null;
 

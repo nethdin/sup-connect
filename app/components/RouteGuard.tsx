@@ -6,7 +6,7 @@ import { getClientUser, isAuthenticated } from '@/app/lib/auth';
 
 interface RouteGuardProps {
   children: React.ReactNode;
-  allowedRoles?: ('STUDENT' | 'SUPERVISOR' | 'ADMIN')[];
+  allowedRoles?: ('STUDENT' | 'SUPERVISOR' | 'ADMIN' | 'SUPER_ADMIN')[];
   redirectTo?: string;
 }
 
@@ -41,7 +41,7 @@ export default function RouteGuard({
         .split('; ')
         .find(row => row.startsWith('authToken='))
         ?.split('=')[1];
-      
+
       // If cookie doesn't exist or doesn't match, set it
       if (!cookieValue || cookieValue !== token) {
         document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
@@ -51,15 +51,22 @@ export default function RouteGuard({
     // If specific roles are required, check user role
     if (allowedRoles && allowedRoles.length > 0) {
       const user = getClientUser();
-      
-      if (!user || !allowedRoles.includes(user.role)) {
+
+      if (!user || !allowedRoles.includes(user.role as any)) {
         // Redirect based on user role
-        if (user?.role === 'STUDENT') {
-          router.push('/dashboard');
-        } else if (user?.role === 'SUPERVISOR') {
-          router.push('/supervisor/dashboard');
-        } else {
-          router.push('/');
+        switch (user?.role) {
+          case 'STUDENT':
+            router.push('/dashboard');
+            break;
+          case 'SUPERVISOR':
+            router.push('/supervisor/dashboard');
+            break;
+          case 'ADMIN':
+          case 'SUPER_ADMIN':
+            router.push('/admin/dashboard');
+            break;
+          default:
+            router.push('/');
         }
         return;
       }
