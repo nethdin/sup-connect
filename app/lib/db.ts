@@ -1,12 +1,35 @@
 import mysql from 'mysql2/promise';
 
-// Database connection configuration
+// Parse DATABASE_URL environment variable
+// Format: mysql://USER:PASSWORD@HOST:PORT/DATABASE
+function parseDatabaseUrl(url: string) {
+  const regex = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/;
+  const match = url.match(regex);
+
+  if (!match) {
+    throw new Error('Invalid DATABASE_URL format. Expected: mysql://USER:PASSWORD@HOST:PORT/DATABASE');
+  }
+
+  return {
+    user: match[1],
+    password: match[2],
+    host: match[3],
+    port: parseInt(match[4], 10),
+    database: match[5],
+  };
+}
+
+// Database connection configuration from environment
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL environment variable is not set');
+}
+
+const parsedConfig = parseDatabaseUrl(databaseUrl);
+
 const dbConfig = {
-  host: 'turntable.proxy.rlwy.net',
-  port: 52451,
-  user: 'root',
-  password: 'oOBEhYalVgQVDYnMsNHHIaJYmVhTNiFC',
-  database: 'railway',
+  ...parsedConfig,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -75,7 +98,7 @@ export async function transaction<T>(
 ): Promise<T> {
   const connection = await getPool().getConnection();
   await connection.beginTransaction();
-  
+
   try {
     const result = await callback(connection);
     await connection.commit();
