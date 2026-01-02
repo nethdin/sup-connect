@@ -1,6 +1,6 @@
 'use client';
 
-import { SupervisorProfile } from '@/app/lib/types';
+import { SupervisorProfile } from '@/app/lib/api-client';
 
 interface RecommendationItem {
   supervisor: SupervisorProfile;
@@ -130,7 +130,7 @@ export default function RecommendationList({
                 className="h-2 rounded-full bg-blue-500"
                 style={{
                   width: `${((rec.supervisor.maxSlots - rec.supervisor.currentSlots) /
-                      rec.supervisor.maxSlots) *
+                    rec.supervisor.maxSlots) *
                     100
                     }%`,
                 }}

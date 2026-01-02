@@ -1,7 +1,15 @@
 'use client';
 
-import { Notification } from '@/app/lib/types';
 import { formatDateTime } from '@/app/lib/utils';
+
+// Local type definition since notifications feature is not yet implemented
+interface Notification {
+  id: string;
+  type: string;
+  body: string;
+  read: boolean;
+  createdAt: Date;
+}
 
 interface NotificationBellProps {
   notifications: Notification[];
@@ -64,9 +72,8 @@ export default function NotificationBell({
             notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${
-                  !notification.read ? 'bg-blue-50' : ''
-                }`}
+                className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition ${!notification.read ? 'bg-blue-50' : ''
+                  }`}
                 onClick={() => onMarkRead?.(notification.id)}
               >
                 <div className="flex items-start justify-between">

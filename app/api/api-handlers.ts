@@ -629,6 +629,10 @@ export async function getRecommendationMatches(request: NextRequest) {
       );
     }
 
+    // Get sort option from query params
+    const url = new URL(request.url);
+    const sortBy = url.searchParams.get('sortBy') || 'match_count';
+
     // Get student's latest project idea
     const studentIdea = await queryOne<any>(
       'SELECT * FROM project_ideas WHERE student_id = ? ORDER BY created_at DESC LIMIT 1',
@@ -642,7 +646,8 @@ export async function getRecommendationMatches(request: NextRequest) {
       });
     }
 
-    const keywords = JSON.parse(studentIdea.keywords);
+    const keywords: string[] = JSON.parse(studentIdea.keywords);
+    const normalizedKeywords = keywords.map(k => k.toLowerCase().trim());
 
     // Get available supervisors
     const supervisors = await query<any[]>(
@@ -655,49 +660,99 @@ export async function getRecommendationMatches(request: NextRequest) {
       FROM supervisor_profiles sp
       JOIN users u ON sp.user_id = u.id
       WHERE sp.current_slots < sp.max_slots
+        AND u.deleted_at IS NULL
       `
     );
 
-    // Calculate matches
-    const recommendations = supervisors
-      .map(supervisor => {
-        const tags = parseTags(supervisor.tags);
-        const matchedTags = tags.filter((tag: string) =>
-          keywords.some((keyword: string) =>
-            keyword.toLowerCase().includes(tag.toLowerCase()) ||
-            tag.toLowerCase().includes(keyword.toLowerCase())
-          ) || studentIdea.category.toLowerCase().includes(tag.toLowerCase())
-        );
+    // Calculate matches using criteria-based approach
+    const matchedSupervisors = supervisors.map(supervisor => {
+      const tags = parseTags(supervisor.tags);
+      const normalizedTags = tags.map((t: string) => t.toLowerCase().trim());
 
-        const score = matchedTags.length * 10 +
-          (supervisor.specialization.toLowerCase().includes(studentIdea.category.toLowerCase()) ? 20 : 0);
+      // Count matching keywords
+      const matchedKeywords = normalizedKeywords.filter(keyword =>
+        normalizedTags.some((tag: string) =>
+          tag === keyword || // Exact match
+          tag.includes(keyword) || // Tag contains keyword
+          keyword.includes(tag) // Keyword contains tag
+        )
+      );
 
-        return {
-          supervisor: {
-            id: supervisor.id,
-            userId: supervisor.user_id,
-            specialization: supervisor.specialization,
-            tags,
-            bio: supervisor.bio,
-            maxSlots: supervisor.max_slots,
-            currentSlots: supervisor.current_slots,
-            user: {
-              id: supervisor.user_id,
-              email: supervisor.user_email,
-              name: supervisor.user_name,
-              role: 'SUPERVISOR' as UserRole,
-              createdAt: new Date(),
-            },
-          } as SupervisorProfile,
-          score,
-          matchedTags,
-        } as RecommendedSupervisor;
-      })
-      .filter(rec => rec.score > 0)
-      .sort((a, b) => b.score - a.score);
+      const matchCount = matchedKeywords.length;
+      const isFullMatch = matchCount === normalizedKeywords.length && normalizedKeywords.length > 0;
+      const availableSlots = supervisor.max_slots - supervisor.current_slots;
+      const yearsOfExperience = supervisor.years_of_experience || 0;
+
+      return {
+        supervisor: {
+          id: supervisor.id,
+          userId: supervisor.user_id,
+          department: supervisor.department,
+          specialization: supervisor.specialization,
+          tags,
+          bio: supervisor.bio,
+          yearsOfExperience,
+          maxSlots: supervisor.max_slots,
+          currentSlots: supervisor.current_slots,
+          user: {
+            id: supervisor.user_id,
+            email: supervisor.user_email,
+            name: supervisor.user_name,
+            role: 'SUPERVISOR' as UserRole,
+            createdAt: new Date(),
+          },
+        },
+        matchedKeywords,
+        matchCount,
+        isFullMatch,
+        availableSlots,
+        yearsOfExperience,
+      };
+    });
+
+    // Filter: at least 1 match required
+    const withMatches = matchedSupervisors.filter(s => s.matchCount > 0);
+
+    // Group A: 100% match (all keywords matched)
+    const groupA = withMatches.filter(s => s.isFullMatch);
+
+    // Group B: Partial match (at least 1 keyword)
+    const groupB = withMatches.filter(s => !s.isFullMatch);
+
+    // Sort function based on sortBy parameter
+    const sortFn = (a: typeof matchedSupervisors[0], b: typeof matchedSupervisors[0]) => {
+      switch (sortBy) {
+        case 'experience':
+          return b.yearsOfExperience - a.yearsOfExperience || b.matchCount - a.matchCount;
+        case 'availability':
+          return b.availableSlots - a.availableSlots || b.matchCount - a.matchCount;
+        case 'match_count':
+        default:
+          return b.matchCount - a.matchCount;
+      }
+    };
+
+    // Sort Group A: by match count desc, then experience desc
+    groupA.sort((a, b) => b.matchCount - a.matchCount || b.yearsOfExperience - a.yearsOfExperience);
+
+    // Sort Group B: by match count desc, then available slots desc
+    groupB.sort((a, b) => b.matchCount - a.matchCount || b.availableSlots - a.availableSlots);
+
+    // Combine: full matches first, then partial
+    let recommendations = [...groupA, ...groupB];
+
+    // Apply user's sort preference to the combined list
+    if (sortBy !== 'match_count') {
+      recommendations.sort(sortFn);
+    }
 
     return NextResponse.json({
-      recommendations,
+      recommendations: recommendations.map(r => ({
+        supervisor: r.supervisor,
+        matchedKeywords: r.matchedKeywords,
+        matchCount: r.matchCount,
+        isFullMatch: r.isFullMatch,
+      })),
       projectIdea: {
         id: studentIdea.id,
         studentId: studentIdea.student_id,
@@ -707,6 +762,11 @@ export async function getRecommendationMatches(request: NextRequest) {
         keywords,
         createdAt: studentIdea.created_at,
       },
+      studentKeywords: keywords,
+      sortedBy: sortBy,
+      totalMatches: recommendations.length,
+      fullMatchCount: groupA.length,
+      partialMatchCount: groupB.length,
     });
   } catch (error) {
     console.error('Get matches error:', error);

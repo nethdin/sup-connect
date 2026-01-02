@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Assignment, Meeting, ProgressUpdate } from '@/app/lib/types';
+import { Assignment, Meeting } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
 import Link from 'next/link';
 import { assignmentAPI, meetingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
 import RouteGuard from '@/app/components/RouteGuard';
 import ProjectIdeaForm from '@/app/components/student/ProjectIdeaForm';
+
+// Local type since progress updates feature is not yet implemented
+interface ProgressUpdate {
+  id: string;
+  title: string;
+  description: string;
+}
 
 export default function StudentDashboard() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);

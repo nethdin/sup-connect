@@ -7,16 +7,16 @@ function decodeToken(token: string): { role?: string } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    
+
     const payload = JSON.parse(
       Buffer.from(parts[1], 'base64').toString('utf-8')
     );
-    
+
     // Check if token is expired
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       return null;
     }
-    
+
     return payload;
   } catch (error) {
     return null;
@@ -37,6 +37,7 @@ const ROUTE_RULES: {
   '/supervisors': { requiresAuth: true, allowedRoles: ['STUDENT'] },
   '/supervisor/dashboard': { requiresAuth: true, allowedRoles: ['SUPERVISOR'] },
   '/supervisor/profile': { requiresAuth: true, allowedRoles: ['SUPERVISOR'] },
+  '/admin': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN'] },
 };
 
 function getRouteRule(pathname: string) {
@@ -76,8 +77,8 @@ export function middleware(request: NextRequest) {
   }
 
   // Get token from cookie or Authorization header
-  const token = request.cookies.get('authToken')?.value || 
-                request.headers.get('authorization')?.replace('Bearer ', '');
+  const token = request.cookies.get('authToken')?.value ||
+    request.headers.get('authorization')?.replace('Bearer ', '');
 
   // No token - redirect to login
   if (!token) {
@@ -102,12 +103,16 @@ export function middleware(request: NextRequest) {
   // Check role-based access
   if (routeRule.allowedRoles && !routeRule.allowedRoles.includes(payload.role)) {
     // User doesn't have required role - redirect to appropriate dashboard
-    if (payload.role === 'STUDENT') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } else if (payload.role === 'SUPERVISOR') {
-      return NextResponse.redirect(new URL('/supervisor/dashboard', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/', request.url));
+    switch (payload.role) {
+      case 'STUDENT':
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      case 'SUPERVISOR':
+        return NextResponse.redirect(new URL('/supervisor/dashboard', request.url));
+      case 'ADMIN':
+      case 'SUPER_ADMIN':
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      default:
+        return NextResponse.redirect(new URL('/', request.url));
     }
   }
 

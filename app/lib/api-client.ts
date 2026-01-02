@@ -35,7 +35,7 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getAuthToken();
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -123,9 +123,11 @@ export const authAPI = {
 export interface SupervisorProfile {
   id: string;
   userId: string;
+  department?: string;
   specialization: string;
   tags: string[];
   bio: string;
+  yearsOfExperience: number;
   maxSlots: number;
   currentSlots: number;
   user?: {
@@ -143,7 +145,7 @@ export const supervisorAPI = {
     const queryParams = new URLSearchParams();
     if (params?.specialization) queryParams.set('specialization', params.specialization);
     if (params?.available !== undefined) queryParams.set('available', params.available.toString());
-    
+
     const query = queryParams.toString();
     return apiRequest(`/supervisors${query ? `?${query}` : ''}`);
   },
@@ -242,15 +244,21 @@ export const studentAPI = {
     });
   },
 
-  getMatches: async (): Promise<{
+  getMatches: async (sortBy: 'match_count' | 'experience' | 'availability' = 'match_count'): Promise<{
     recommendations: Array<{
       supervisor: SupervisorProfile;
-      score: number;
-      matchedTags: string[];
+      matchedKeywords: string[];
+      matchCount: number;
+      isFullMatch: boolean;
     }>;
     projectIdea: ProjectIdea;
+    studentKeywords: string[];
+    sortedBy: string;
+    totalMatches: number;
+    fullMatchCount: number;
+    partialMatchCount: number;
   }> => {
-    return apiRequest('/student/matches');
+    return apiRequest(`/student/matches?sortBy=${sortBy}`);
   },
 
   sendRequest: async (supervisorId: string): Promise<{
