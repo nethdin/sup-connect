@@ -55,7 +55,7 @@ const verifyToken = (token: string): { userId: string; role: UserRole } | null =
 };
 
 // Get user from request
-const getUserFromRequest = (request: NextRequest) => {
+export const getUserFromRequest = (request: NextRequest) => {
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.substring(7);
@@ -66,10 +66,10 @@ const getUserFromRequest = (request: NextRequest) => {
 // Handles both JSON array format and comma-separated string format
 const parseTags = (tagsData: any): string[] => {
   if (!tagsData) return [];
-  
+
   // If it's already an array, return it
   if (Array.isArray(tagsData)) return tagsData;
-  
+
   // Try to parse as JSON first
   try {
     const parsed = JSON.parse(tagsData);
@@ -77,7 +77,7 @@ const parseTags = (tagsData: any): string[] => {
   } catch {
     // If JSON parsing fails, treat as comma-separated string
   }
-  
+
   // Handle comma-separated string
   if (typeof tagsData === 'string') {
     return tagsData
@@ -85,7 +85,7 @@ const parseTags = (tagsData: any): string[] => {
       .map(tag => tag.trim())
       .filter(tag => tag.length > 0);
   }
-  
+
   return [];
 };
 
@@ -154,13 +154,13 @@ export async function registerUser(request: NextRequest) {
 
     // Create user
     const userId = generateId();
-    
+
     // Create basic user record (same for all roles)
     await query(
       'INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)',
       [userId, email, hashedPassword, name, role]
     );
-    
+
     // Create role-specific profile
     if (role === 'STUDENT') {
       const studentProfileId = generateId();
@@ -168,7 +168,7 @@ export async function registerUser(request: NextRequest) {
         'INSERT INTO student_profiles (id, user_id, registration_no, department, research_interests, preferred_fields) VALUES (?, ?, ?, ?, ?, ?)',
         [
           studentProfileId,
-          userId, 
+          userId,
           registrationNo,
           department,
           researchInterests || null,
@@ -236,7 +236,7 @@ export async function loginUser(request: NextRequest) {
     // Verify password
     const isValidPassword = await verifyPassword(password, user.password);
     console.log('Password verification result:', isValidPassword);
-    
+
     if (!isValidPassword) {
       console.log('Login failed: Invalid password for email:', email);
       return NextResponse.json(
@@ -248,11 +248,11 @@ export async function loginUser(request: NextRequest) {
     // Create token
     const token = createToken(user.id, user.role);
     console.log('Login successful for:', email);
-    console.log('Response data:', { 
-      id: user.id, 
-      email: user.email, 
-      name: user.name, 
-      role: user.role 
+    console.log('Response data:', {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
     });
 
     return NextResponse.json({
@@ -669,7 +669,7 @@ export async function getRecommendationMatches(request: NextRequest) {
           ) || studentIdea.category.toLowerCase().includes(tag.toLowerCase())
         );
 
-        const score = matchedTags.length * 10 + 
+        const score = matchedTags.length * 10 +
           (supervisor.specialization.toLowerCase().includes(studentIdea.category.toLowerCase()) ? 20 : 0);
 
         return {
@@ -1038,7 +1038,7 @@ export async function acceptBookingRequest(requestId: string, request: NextReque
       'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
       ['ACCEPTED', requestId]
     );
-    
+
     // Increment supervisor slots
     await connection.query(
       'UPDATE supervisor_profiles SET current_slots = current_slots + 1 WHERE id = ?',

@@ -1,21 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLoggedInUser, getUserDashboardUrl } from '@/app/lib/utils';
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Redirect logged-in users to their dashboard
-    const user = getLoggedInUser();
-    if (user) {
-      router.push(getUserDashboardUrl(user.role));
-    }
-  }, [router]);
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
