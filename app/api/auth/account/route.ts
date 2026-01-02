@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/app/lib/db';
-import { getUserFromRequest } from '@/app/api/api-handlers';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+
+const getUserFromRequest = (request: NextRequest) => {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) return null;
+    const token = authHeader.split(' ')[1];
+    try {
+        return jwt.verify(token, JWT_SECRET) as { userId: string; role: string };
+    } catch {
+        return null;
+    }
+};
 
 // DELETE - Delete own account (soft delete)
 export async function DELETE(request: NextRequest) {
