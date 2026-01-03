@@ -1,8 +1,9 @@
 // Authentication utilities
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { config } from '@/app/lib/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+const JWT_SECRET = config.auth.jwtSecret;
 
 export interface JWTPayload {
   userId: string;

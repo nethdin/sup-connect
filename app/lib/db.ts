@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import { config } from '@/app/lib/config';
 
 // Parse DATABASE_URL environment variable
 // Format: mysql://USER:PASSWORD@HOST:PORT/DATABASE
@@ -20,11 +21,7 @@ function parseDatabaseUrl(url: string) {
 }
 
 // Database connection configuration from environment
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL environment variable is not set');
-}
+const databaseUrl = config.db.url;
 
 const parsedConfig = parseDatabaseUrl(databaseUrl);
 

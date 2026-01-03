@@ -13,13 +13,14 @@ import {
   Meeting,
   RecommendedSupervisor,
 } from '@/app/lib/types';
+import { config } from '@/app/lib/config';
 
 // ============================================
 // CONFIGURATION
 // ============================================
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
+const JWT_SECRET = config.auth.jwtSecret;
+const JWT_EXPIRY = config.auth.jwtExpiry;
 const SALT_ROUNDS = 10;
 
 // ============================================
@@ -479,6 +480,13 @@ export async function submitProjectIdea(request: NextRequest) {
     if (!title || !description || !category) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (description.length < 200 || description.length > 1000) {
+      return NextResponse.json(
+        { error: 'Description must be between 200 and 1000 characters' },
         { status: 400 }
       );
     }

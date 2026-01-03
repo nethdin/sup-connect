@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/app/lib/db';
 import jwt from 'jsonwebtoken';
+import { config } from '@/app/lib/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+const JWT_SECRET = config.auth.jwtSecret;
 
 const getUserFromRequest = (request: NextRequest) => {
     const authHeader = request.headers.get('authorization');

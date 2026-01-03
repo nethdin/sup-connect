@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import RouteGuard from '@/app/components/RouteGuard';
+import ConfigManagementModal from '@/app/components/admin/ConfigManagementModal';
 
 interface DashboardStats {
     totalUsers: number;
@@ -18,6 +19,7 @@ export default function AdminDashboard() {
         supervisors: 0,
         admins: 0,
     });
+    const [activeModal, setActiveModal] = useState<'tags' | 'specializations' | 'categories' | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -49,6 +51,7 @@ export default function AdminDashboard() {
     };
 
     return (
+        // Protected route for admins
         <RouteGuard allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
             <main className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -145,30 +148,36 @@ export default function AdminDashboard() {
                                 </Link>
                             </div>
                         </div>
-
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">System Overview</h2>
-                            <p className="text-gray-600 mb-6">
-                                Quick overview of system activity and status.
-                            </p>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Active Supervisors</span>
-                                    <span className="font-semibold text-gray-900">{stats.supervisors}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">Registered Students</span>
-                                    <span className="font-semibold text-gray-900">{stats.students}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="text-gray-600">Admin Accounts</span>
-                                    <span className="font-semibold text-gray-900">{stats.admins}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <span className="font-semibold text-gray-900">{stats.supervisors}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-gray-600">Registered Students</span>
+                        <span className="font-semibold text-gray-900">{stats.students}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">Admin Accounts</span>
+                        <span className="font-semibold text-gray-900">{stats.admins}</span>
                     </div>
                 </div>
-            </main>
-        </RouteGuard>
+            </div>
+        </div>
+                </div >
+            </main >
+
+        {/* Config Management Modals */ }
+    {
+        activeModal && (
+            <ConfigManagementModal
+                isOpen={!!activeModal}
+                onClose={() => setActiveModal(null)}
+                type={activeModal}
+                title={
+                    activeModal === 'tags' ? 'Manage Tags' :
+                        activeModal === 'specializations' ? 'Manage Specializations' : 'Manage Categories'
+                }
+            />
+        )
+    }
+        </RouteGuard >
     );
 }

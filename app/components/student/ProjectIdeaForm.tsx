@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { studentAPI, ProjectIdea, configAPI, ProjectCategory, Tag } from '@/app/lib/api-client';
 import { useToast } from '@/app/context/ToastContext';
+import TagSelector from '@/app/components/common/TagSelector';
 
 interface ProjectIdeaFormProps {
   onSubmit?: (data: ProjectIdeaData) => void;
@@ -31,6 +32,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Load categories and tags on mount
   useEffect(() => {
@@ -102,10 +104,10 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
 
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
-    else if (formData.description.length < 150)
-      newErrors.description = 'Description must be at least 150 characters';
-    else if (formData.description.length > 300)
-      newErrors.description = 'Description must not exceed 300 characters';
+    else if (formData.description.length < 200)
+      newErrors.description = 'Description must be at least 200 characters';
+    else if (formData.description.length > 1000)
+      newErrors.description = 'Description must not exceed 1000 characters';
 
     if (!formData.category) newErrors.category = 'Category is required';
     if (formData.keywords.length === 0)
@@ -199,8 +201,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           >
             Description
           </label>
-          <span className={`text-xs ${charCount > 300 ? 'text-red-600' : 'text-gray-500'}`}>
-            {charCount} / 300
+          <span className={`text-xs ${charCount > 1000 ? 'text-red-600' : 'text-gray-500'}`}>
+            {charCount} / 1000
           </span>
         </div>
         <textarea
@@ -208,8 +210,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
           name="description"
           value={formData.description}
           onChange={handleChange}
-          rows={6}
-          placeholder="Describe your project idea in 150-300 characters. Include main goals, approach, and expected outcomes..."
+          rows={8}
+          placeholder="Describe your project idea in 200-1000 characters. Include main goals, approach, and expected outcomes..."
           className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.description ? 'border-red-500' : 'border-gray-300'
             }`}
         />
@@ -251,57 +253,42 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Keywords
         </label>
-        <p className="text-sm text-gray-500 mb-3">Select keywords that describe your project (at least 1 required):</p>
+        <p className="text-sm text-gray-500 mb-3">
+          Select keywords that describe your project, or use AI to suggest tags based on your description.
+        </p>
 
-        {/* Group tags by category */}
-        {Object.entries(
-          availableTags.reduce((acc, tag) => {
-            const cat = tag.category || 'Other';
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push(tag);
-            return acc;
-          }, {} as Record<string, Tag[]>)
-        ).map(([category, tags]) => (
-          <div key={category} className="mb-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category}</h4>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <label
-                  key={tag.id}
-                  className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.keywords.includes(tag.name)
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={formData.keywords.includes(tag.name)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, tag.name] }));
-                      } else {
-                        setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== tag.name) }));
-                      }
-                    }}
-                  />
-                  {formData.keywords.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
-                  {tag.name}
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {formData.keywords.length > 0 && (
-          <p className="text-sm text-blue-600 mt-2">
-            <i className="fa-solid fa-check-circle mr-1"></i>
-            {formData.keywords.length} keyword(s) selected
-          </p>
-        )}
-        {errors.keywords && (
-          <p className="mt-1 text-sm text-red-600">{errors.keywords}</p>
-        )}
+        <TagSelector
+          availableTags={availableTags}
+          selectedTags={formData.keywords}
+          onTagsChange={(keywords) => setFormData(prev => ({ ...prev, keywords }))}
+          placeholder="Search or browse tags..."
+          error={errors.keywords}
+          showAIButton={formData.description.length >= 30}
+          onAISuggest={async () => {
+            if (formData.description.length < 30) {
+              addToast('Please write at least 30 characters in description first', 'warning');
+              return;
+            }
+            setAiLoading(true);
+            try {
+              const result = await configAPI.suggestTags(formData.description);
+              setFormData(prev => ({ ...prev, keywords: result.suggestedTags }));
+              if (result.newTagsCreated > 0) {
+                // Refresh tags list to include new ones
+                const tagsRes = await configAPI.getTags();
+                setAvailableTags(tagsRes.tags);
+                addToast(`AI suggested ${result.suggestedTags.length} tags (${result.newTagsCreated} new created)`, 'success');
+              } else {
+                addToast(`AI suggested ${result.suggestedTags.length} tags`, 'success');
+              }
+            } catch (err) {
+              addToast(err instanceof Error ? err.message : 'Failed to get AI suggestions', 'error');
+            } finally {
+              setAiLoading(false);
+            }
+          }}
+          aiLoading={aiLoading}
+        />
       </div>
 
       {/* File Upload */}

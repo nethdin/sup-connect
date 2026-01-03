@@ -355,6 +355,18 @@ export const configAPI = {
   getTags: async (): Promise<{ tags: Tag[] }> => {
     return apiRequest('/tags');
   },
+
+  suggestTags: async (description: string): Promise<{
+    suggestedTags: string[];
+    existingTagsUsed: number;
+    newTagsCreated: number;
+    createdTags: string[];
+  }> => {
+    return apiRequest('/ai/suggest-tags', {
+      method: 'POST',
+      body: JSON.stringify({ description }),
+    });
+  },
 };
 
 // ============================================
