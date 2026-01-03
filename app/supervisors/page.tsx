@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SPECIALIZATIONS } from '@/app/lib/utils';
-import { supervisorAPI, studentAPI, SupervisorProfile as ApiSupervisorProfile } from '@/app/lib/api-client';
+import { supervisorAPI, studentAPI, configAPI, SupervisorProfile as ApiSupervisorProfile, Specialization } from '@/app/lib/api-client';
 import SupervisorCard from '@/app/components/supervisor/SupervisorCard';
 import { SupervisorProfile } from '@/app/lib/types';
 import RouteGuard from '@/app/components/RouteGuard';
@@ -16,6 +15,7 @@ export default function SupervisorsPage() {
   const [filteredSupervisors, setFilteredSupervisors] = useState<
     SupervisorProfile[]
   >([]);
+  const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -23,18 +23,26 @@ export default function SupervisorsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchSupervisors();
+    fetchData();
   }, []);
-  const fetchSupervisors = async () => {
+
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await supervisorAPI.getAll();
-      setSupervisors(response.supervisors as SupervisorProfile[]);
-      setFilteredSupervisors(response.supervisors as SupervisorProfile[]);
+
+      // Fetch supervisors and specializations in parallel
+      const [supervisorsRes, specsRes] = await Promise.all([
+        supervisorAPI.getAll(),
+        configAPI.getSpecializations(),
+      ]);
+
+      setSupervisors(supervisorsRes.supervisors as SupervisorProfile[]);
+      setFilteredSupervisors(supervisorsRes.supervisors as SupervisorProfile[]);
+      setSpecializations(specsRes.specializations);
     } catch (err) {
-      console.error('Failed to fetch supervisors:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load supervisors');
+      console.error('Failed to fetch data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
@@ -131,9 +139,9 @@ export default function SupervisorsPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               >
                 <option value="">All Specializations</option>
-                {SPECIALIZATIONS.map((spec) => (
-                  <option key={spec} value={spec}>
-                    {spec}
+                {specializations.map((spec) => (
+                  <option key={spec.id} value={spec.name}>
+                    {spec.name}
                   </option>
                 ))}
               </select>

@@ -16,12 +16,27 @@ interface ProgressUpdate {
   description: string;
 }
 
+// Request type
+interface BookingRequest {
+  id: string;
+  status: string;
+  created_at: string;
+  responded_at: string | null;
+  supervisor_id: string;
+  supervisor_name: string;
+  supervisor_email: string;
+  specialization: string;
+  department: string;
+}
+
 export default function StudentDashboard() {
   const { addToast } = useToast();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
   const [projectIdea, setProjectIdea] = useState<ProjectIdea | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<BookingRequest | null>(null);
+  const [cancellingRequest, setCancellingRequest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -43,6 +58,11 @@ export default function StudentDashboard() {
       const ideaData = await studentAPI.getIdea();
       setProjectIdea(ideaData.projectIdea);
 
+      // Fetch booking requests (for pending status)
+      const requestsData = await studentAPI.getRequests();
+      const pending = requestsData.requests.find(r => r.status === 'PENDING');
+      setPendingRequest(pending || null);
+
       // Fetch upcoming meetings
       const meetingsData = await meetingAPI.getAll(true);
       setMeetings(meetingsData.meetings as any);
@@ -62,6 +82,21 @@ export default function StudentDashboard() {
   const handleIdeaUpdated = () => {
     setShowEditForm(false);
     fetchDashboardData(); // Refresh to show updated idea
+  };
+
+  const handleCancelRequest = async () => {
+    if (!pendingRequest) return;
+
+    setCancellingRequest(true);
+    try {
+      await studentAPI.cancelRequest(pendingRequest.id);
+      addToast('Request cancelled successfully', 'success');
+      setPendingRequest(null);
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to cancel request', 'error');
+    } finally {
+      setCancellingRequest(false);
+    }
   };
 
   const content = () => {
@@ -148,17 +183,96 @@ export default function StudentDashboard() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
                     Not Yet Assigned
                   </h2>
-                  <p className="text-gray-600 mb-4">
-                    You haven't been assigned a supervisor yet.
-                    {!projectIdea && ' Submit your project idea to get started.'}
-                  </p>
-                  {!projectIdea && (
-                    <Link
-                      href="/student/idea"
-                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      Submit Project Idea
-                    </Link>
+
+                  {pendingRequest ? (
+                    // Show pending request info
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full flex items-center gap-1">
+                          <i className="fa-solid fa-clock"></i>
+                          Pending Request
+                        </span>
+                      </div>
+
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <p className="text-sm text-amber-800 mb-3">
+                          Your request to <strong>{pendingRequest.supervisor_name}</strong> is pending approval.
+                        </p>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <i className="fa-solid fa-user w-4"></i>
+                            <span className="font-medium">Supervisor:</span>
+                            <Link
+                              href={`/supervisors/${pendingRequest.supervisor_id}`}
+                              className="text-brand-600 hover:underline"
+                            >
+                              {pendingRequest.supervisor_name}
+                            </Link>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <i className="fa-solid fa-flask w-4"></i>
+                            <span className="font-medium">Specialization:</span>
+                            <span>{pendingRequest.specialization || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <i className="fa-solid fa-envelope w-4"></i>
+                            <span className="font-medium">Email:</span>
+                            <span>{pendingRequest.supervisor_email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <i className="fa-solid fa-calendar w-4"></i>
+                            <span className="font-medium">Requested:</span>
+                            <span>{new Date(pendingRequest.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-amber-200">
+                          <button
+                            onClick={handleCancelRequest}
+                            disabled={cancellingRequest}
+                            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition"
+                          >
+                            {cancellingRequest ? (
+                              <>
+                                <i className="fa-solid fa-spinner fa-spin mr-2"></i>
+                                Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-times mr-2"></i>
+                                Cancel Request
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // No pending request
+                    <>
+                      <p className="text-gray-600 mb-4">
+                        You haven't been assigned a supervisor yet.
+                        {!projectIdea && ' Submit your project idea to get started.'}
+                        {projectIdea && ' Browse supervisors and send a request.'}
+                      </p>
+                      {!projectIdea ? (
+                        <Link
+                          href="/student/idea"
+                          className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        >
+                          Submit Project Idea
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/student/recommendations"
+                          className="inline-block px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+                        >
+                          <i className="fa-solid fa-search mr-2"></i>
+                          Find Supervisors
+                        </Link>
+                      )}
+                    </>
                   )}
                 </div>
               )}

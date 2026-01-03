@@ -277,6 +277,28 @@ export const studentAPI = {
   }> => {
     return apiRequest('/student/assignment');
   },
+
+  getRequests: async (): Promise<{
+    requests: Array<{
+      id: string;
+      status: string;
+      created_at: string;
+      responded_at: string | null;
+      supervisor_id: string;
+      supervisor_name: string;
+      supervisor_email: string;
+      specialization: string;
+      department: string;
+    }>;
+  }> => {
+    return apiRequest('/student/requests');
+  },
+
+  cancelRequest: async (requestId: string): Promise<{ message: string }> => {
+    return apiRequest(`/student/request/${requestId}/cancel`, {
+      method: 'POST',
+    });
+  },
 };
 
 // ============================================
@@ -296,6 +318,42 @@ export const assignmentAPI = {
     total: number;
   }> => {
     return apiRequest('/supervisor/assignments');
+  },
+};
+
+// ============================================
+// CONFIG API (Specializations & Categories)
+// ============================================
+
+export interface Specialization {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProjectCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  category?: string;
+}
+
+export const configAPI = {
+  getSpecializations: async (): Promise<{ specializations: Specialization[] }> => {
+    return apiRequest('/specializations');
+  },
+
+  getCategories: async (): Promise<{ categories: ProjectCategory[] }> => {
+    return apiRequest('/categories');
+  },
+
+  getTags: async (): Promise<{ tags: Tag[] }> => {
+    return apiRequest('/tags');
   },
 };
 

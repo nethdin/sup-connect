@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/context/ToastContext';
-import { SPECIALIZATIONS } from '@/app/lib/utils';
+import { configAPI, Specialization, Tag } from '@/app/lib/api-client';
 
 interface UserProfile {
     id: string;
@@ -33,9 +33,10 @@ export default function ProfilePage() {
     const { addToast } = useToast();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [profile, setProfile] = useState<SupervisorProfile | StudentProfile | null>(null);
+    const [specializations, setSpecializations] = useState<Specialization[]>([]);
+    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [tagInput, setTagInput] = useState('');
 
     // Form state
     const [formData, setFormData] = useState({
@@ -62,17 +63,25 @@ export default function ProfilePage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('authToken');
-            const response = await fetch('/api/user/profile', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
 
-            if (!response.ok) {
+            // Fetch profile, specializations and tags in parallel
+            const [profileRes, specsRes, tagsRes] = await Promise.all([
+                fetch('/api/user/profile', {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                configAPI.getSpecializations(),
+                configAPI.getTags(),
+            ]);
+
+            if (!profileRes.ok) {
                 throw new Error('Failed to load profile');
             }
 
-            const data = await response.json();
+            const data = await profileRes.json();
             setUser(data.user);
             setProfile(data.profile);
+            setSpecializations(specsRes.specializations);
+            setAvailableTags(tagsRes.tags);
 
             // Initialize form data
             setFormData(prev => ({
@@ -316,8 +325,8 @@ export default function ProfilePage() {
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                                         >
                                             <option value="">Select Specialization</option>
-                                            {SPECIALIZATIONS.map(spec => (
-                                                <option key={spec} value={spec}>{spec}</option>
+                                            {specializations.map(spec => (
+                                                <option key={spec.id} value={spec.name}>{spec.name}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -373,40 +382,54 @@ export default function ProfilePage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Tags / Research Interests</label>
-                                    <div className="flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            value={tagInput}
-                                            onChange={(e) => setTagInput(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                                            placeholder="Add a tag..."
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleAddTag}
-                                            className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
-                                        >
-                                            Add
-                                        </button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {formData.tags.map(tag => (
-                                            <span
-                                                key={tag}
-                                                className="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-sm flex items-center gap-2"
-                                            >
-                                                {tag}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveTag(tag)}
-                                                    className="text-brand-500 hover:text-brand-700"
-                                                >
-                                                    ×
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
+                                    <p className="text-sm text-gray-500 mb-3">Select tags that match your expertise:</p>
+
+                                    {/* Group tags by category */}
+                                    {Object.entries(
+                                        availableTags.reduce((acc, tag) => {
+                                            const cat = tag.category || 'Other';
+                                            if (!acc[cat]) acc[cat] = [];
+                                            acc[cat].push(tag);
+                                            return acc;
+                                        }, {} as Record<string, Tag[]>)
+                                    ).map(([category, tags]) => (
+                                        <div key={category} className="mb-3">
+                                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category}</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {tags.map((tag) => (
+                                                    <label
+                                                        key={tag.id}
+                                                        className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
+                                                                ? 'bg-brand-600 text-white border-brand-600'
+                                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                                                            }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="sr-only"
+                                                            checked={formData.tags.includes(tag.name)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag.name] }));
+                                                                } else {
+                                                                    setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag.name) }));
+                                                                }
+                                                            }}
+                                                        />
+                                                        {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
+                                                        {tag.name}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {formData.tags.length > 0 && (
+                                        <p className="text-sm text-brand-600 mt-2">
+                                            <i className="fa-solid fa-check-circle mr-1"></i>
+                                            {formData.tags.length} tag(s) selected
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>

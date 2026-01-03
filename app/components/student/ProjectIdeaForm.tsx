@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PROJECT_CATEGORIES } from '@/app/lib/utils';
-import { studentAPI, ProjectIdea } from '@/app/lib/api-client';
+import { studentAPI, ProjectIdea, configAPI, ProjectCategory, Tag } from '@/app/lib/api-client';
 import { useToast } from '@/app/context/ToastContext';
 
 interface ProjectIdeaFormProps {
@@ -28,9 +27,21 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
     keywords: [] as string[],
     attachments: [] as File[],
   });
-  const [keywordInput, setKeywordInput] = useState('');
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load categories and tags on mount
+  useEffect(() => {
+    Promise.all([
+      configAPI.getCategories(),
+      configAPI.getTags(),
+    ]).then(([catRes, tagsRes]) => {
+      setCategories(catRes.categories);
+      setAvailableTags(tagsRes.tags);
+    });
+  }, []);
 
   // Load initial data if provided
   useEffect(() => {
@@ -224,9 +235,9 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
             }`}
         >
           <option value="">Select a category</option>
-          {PROJECT_CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.name}>
+              {cat.name}
             </option>
           ))}
         </select>
@@ -235,48 +246,58 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
         )}
       </div>
 
-      {/* Keywords */}
+      {/* Keywords (Select from predefined tags) */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Keywords
         </label>
-        <div className="mt-2 flex gap-2">
-          <input
-            type="text"
-            value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
-            onKeyPress={(e) =>
-              e.key === 'Enter' && (e.preventDefault(), addKeyword())
-            }
-            placeholder="e.g., CNN, image processing, agriculture"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
-          <button
-            type="button"
-            onClick={addKeyword}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-          >
-            Add
-          </button>
-        </div>
-        {formData.keywords.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {formData.keywords.map((keyword) => (
-              <span
-                key={keyword}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
-              >
-                {keyword}
-                <button
-                  type="button"
-                  onClick={() => removeKeyword(keyword)}
-                  className="text-blue-700 hover:text-blue-900 font-bold"
+        <p className="text-sm text-gray-500 mb-3">Select keywords that describe your project (at least 1 required):</p>
+
+        {/* Group tags by category */}
+        {Object.entries(
+          availableTags.reduce((acc, tag) => {
+            const cat = tag.category || 'Other';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(tag);
+            return acc;
+          }, {} as Record<string, Tag[]>)
+        ).map(([category, tags]) => (
+          <div key={category} className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category}</h4>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <label
+                  key={tag.id}
+                  className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.keywords.includes(tag.name)
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    }`}
                 >
-                  ×
-                </button>
-              </span>
-            ))}
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={formData.keywords.includes(tag.name)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData((prev) => ({ ...prev, keywords: [...prev.keywords, tag.name] }));
+                      } else {
+                        setFormData((prev) => ({ ...prev, keywords: prev.keywords.filter((k) => k !== tag.name) }));
+                      }
+                    }}
+                  />
+                  {formData.keywords.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
+                  {tag.name}
+                </label>
+              ))}
+            </div>
           </div>
+        ))}
+
+        {formData.keywords.length > 0 && (
+          <p className="text-sm text-blue-600 mt-2">
+            <i className="fa-solid fa-check-circle mr-1"></i>
+            {formData.keywords.length} keyword(s) selected
+          </p>
         )}
         {errors.keywords && (
           <p className="mt-1 text-sm text-red-600">{errors.keywords}</p>
