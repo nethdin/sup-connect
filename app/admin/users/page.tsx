@@ -201,7 +201,6 @@ function UserFormModal({
                                     <option value="STUDENT">Student</option>
                                     <option value="SUPERVISOR">Supervisor</option>
                                     <option value="ADMIN">Admin</option>
-                                    <option value="SUPER_ADMIN">Super Admin</option>
                                 </select>
                             </div>
                         </div>
@@ -229,6 +228,212 @@ function UserFormModal({
     );
 }
 
+// Transfer SUPER_ADMIN Modal Component
+function TransferModal({
+    isOpen,
+    onClose,
+    onConfirm,
+    targetUser,
+    isTransferring,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (password: string, confirmationPhrase: string) => void;
+    targetUser: User | null;
+    isTransferring: boolean;
+}) {
+    const { addToast } = useToast();
+    const [password, setPassword] = useState('');
+    const [confirmationPhrase, setConfirmationPhrase] = useState('');
+    const [step, setStep] = useState(1);
+    const [verifyingPassword, setVerifyingPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+
+    const REQUIRED_PHRASE = 'TRANSFER SUPER ADMIN';
+
+    useEffect(() => {
+        if (!isOpen) {
+            setPassword('');
+            setConfirmationPhrase('');
+            setStep(1);
+            setPasswordError('');
+        }
+    }, [isOpen]);
+
+    if (!isOpen || !targetUser) return null;
+
+    const handleNextStep = async () => {
+        if (step === 1 && password) {
+            setVerifyingPassword(true);
+            setPasswordError('');
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/auth/verify-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ password }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.valid) {
+                    setPasswordError(data.error || 'Invalid password');
+                    return;
+                }
+
+                // Password verified, proceed to step 2
+                setStep(2);
+            } catch (err) {
+                setPasswordError('Failed to verify password');
+            } finally {
+                setVerifyingPassword(false);
+            }
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (confirmationPhrase === REQUIRED_PHRASE) {
+            onConfirm(password, confirmationPhrase);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={onClose}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 animate-fade-in">
+                <div className="p-6 border-b border-gray-200 bg-red-50 rounded-t-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                            <i className="fa-solid fa-triangle-exclamation text-2xl text-red-600"></i>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-red-800">
+                                Transfer SUPER_ADMIN Role
+                            </h2>
+                            <p className="text-sm text-red-600">
+                                This action is irreversible
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6 space-y-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <p className="text-sm text-amber-800">
+                                <strong>Warning:</strong> You are about to transfer SUPER_ADMIN to{' '}
+                                <strong>{targetUser.name}</strong>. You will be demoted to ADMIN and logged out.
+                            </p>
+                        </div>
+
+                        {step === 1 && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Step 1: Enter Your Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        setPasswordError('');
+                                    }}
+                                    placeholder="Your current password"
+                                    autoFocus
+                                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                />
+                                {passwordError && (
+                                    <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                                        <i className="fa-solid fa-circle-xmark"></i> {passwordError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Step 2: Type the confirmation phrase exactly
+                                </label>
+                                <div className="bg-gray-100 px-4 py-2 rounded-lg mb-3 font-mono text-center text-lg font-bold text-gray-700">
+                                    {REQUIRED_PHRASE}
+                                </div>
+                                <input
+                                    type="text"
+                                    value={confirmationPhrase}
+                                    onChange={(e) => setConfirmationPhrase(e.target.value.toUpperCase())}
+                                    placeholder="Type the phrase above"
+                                    autoFocus
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none font-mono"
+                                />
+                                {confirmationPhrase && confirmationPhrase !== REQUIRED_PHRASE && (
+                                    <p className="text-sm text-red-600 mt-2">
+                                        Phrase doesn't match. Please type exactly: {REQUIRED_PHRASE}
+                                    </p>
+                                )}
+                                {confirmationPhrase === REQUIRED_PHRASE && (
+                                    <p className="text-sm text-green-600 mt-2">
+                                        <i className="fa-solid fa-circle-check"></i> Phrase matches
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-between gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                        >
+                            Cancel
+                        </button>
+
+                        {step === 1 && (
+                            <button
+                                type="button"
+                                onClick={handleNextStep}
+                                disabled={!password || verifyingPassword}
+                                className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition flex items-center gap-2"
+                            >
+                                {verifyingPassword ? (
+                                    <>
+                                        <i className="fa-solid fa-spinner fa-spin"></i>
+                                        Verifying...
+                                    </>
+                                ) : (
+                                    'Next Step →'
+                                )}
+                            </button>
+                        )}
+
+                        {step === 2 && (
+                            <button
+                                type="submit"
+                                disabled={confirmationPhrase !== REQUIRED_PHRASE || isTransferring}
+                                className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition"
+                            >
+                                {isTransferring ? 'Transferring...' : 'Transfer SUPER_ADMIN'}
+                            </button>
+                        )}
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // Main Page Component
 export default function AdminUsersPage() {
     const { addToast } = useToast();
@@ -241,10 +446,16 @@ export default function AdminUsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+    const [transferringId, setTransferringId] = useState<string | null>(null);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+
+    // Transfer modal state
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [transferTarget, setTransferTarget] = useState<User | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -252,6 +463,7 @@ export default function AdminUsersPage() {
         if (userData) {
             const parsed = JSON.parse(userData);
             setCurrentUserId(parsed.id);
+            setCurrentUserRole(parsed.role);
         }
     }, []);
 
@@ -339,6 +551,57 @@ export default function AdminUsersPage() {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingUser(null);
+    };
+
+    const openTransferModal = (user: User) => {
+        setTransferTarget(user);
+        setIsTransferModalOpen(true);
+    };
+
+    const closeTransferModal = () => {
+        setIsTransferModalOpen(false);
+        setTransferTarget(null);
+    };
+
+    const executeTransfer = async (password: string, confirmationPhrase: string) => {
+        if (!transferTarget) return;
+
+        setTransferringId(transferTarget.id);
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('/api/admin/transfer-super-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    targetUserId: transferTarget.id,
+                    password,
+                    confirmationPhrase,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to transfer role');
+            }
+
+            addToast(`SUPER_ADMIN transferred to ${transferTarget.name}. Logging out...`, 'success');
+            closeTransferModal();
+
+            // Clear auth and redirect to login
+            setTimeout(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }, 2000);
+        } catch (err) {
+            addToast(err instanceof Error ? err.message : 'Failed to transfer role', 'error');
+        } finally {
+            setTransferringId(null);
+        }
     };
 
     const getRoleBadgeColor = (role: string) => {
@@ -464,6 +727,16 @@ export default function AdminUsersPage() {
                                             <td className="px-6 py-4 text-right space-x-2">
                                                 {canModifyUser(user.role, user.id) ? (
                                                     <>
+                                                        {/* Transfer button - only SUPER_ADMIN can see, only for ADMIN users */}
+                                                        {currentUserRole === 'SUPER_ADMIN' && user.role === 'ADMIN' && (
+                                                            <button
+                                                                onClick={() => openTransferModal(user)}
+                                                                disabled={transferringId === user.id}
+                                                                className="text-amber-600 hover:text-amber-700 text-sm font-medium disabled:opacity-50"
+                                                            >
+                                                                {transferringId === user.id ? 'Transferring...' : 'Transfer SA'}
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => openEditModal(user)}
                                                             className="text-brand-600 hover:text-brand-700 text-sm font-medium"
@@ -506,6 +779,15 @@ export default function AdminUsersPage() {
                 onClose={closeModal}
                 onSuccess={fetchUsers}
                 editUser={editingUser}
+            />
+
+            {/* Transfer Modal */}
+            <TransferModal
+                isOpen={isTransferModalOpen}
+                onClose={closeTransferModal}
+                onConfirm={executeTransfer}
+                targetUser={transferTarget}
+                isTransferring={transferringId !== null}
             />
         </RouteGuard>
     );

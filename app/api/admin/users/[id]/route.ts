@@ -127,10 +127,10 @@ export async function PUT(
             );
         }
 
-        // Prevent role change to SUPER_ADMIN by non-SUPER_ADMIN
-        if (role === 'SUPER_ADMIN' && auth.role !== 'SUPER_ADMIN') {
+        // SUPER_ADMIN role cannot be assigned via edit - must use transfer endpoint
+        if (role === 'SUPER_ADMIN') {
             return NextResponse.json(
-                { error: 'Only SUPER_ADMIN can assign SUPER_ADMIN role' },
+                { error: 'SUPER_ADMIN role cannot be assigned. Use the transfer function instead.' },
                 { status: 403 }
             );
         }
@@ -160,7 +160,7 @@ export async function PUT(
             updates.push('password_hash = ?');
             values.push(hashedPassword);
         }
-        if (role && ['STUDENT', 'SUPERVISOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+        if (role && ['STUDENT', 'SUPERVISOR', 'ADMIN'].includes(role)) {
             updates.push('role = ?');
             values.push(role);
         }

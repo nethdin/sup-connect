@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate role
-        if (!['STUDENT', 'SUPERVISOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+        // Validate role - SUPER_ADMIN cannot be created, only transferred
+        if (!['STUDENT', 'SUPERVISOR', 'ADMIN'].includes(role)) {
             return NextResponse.json(
-                { error: 'Invalid role' },
+                { error: 'Invalid role. SUPER_ADMIN cannot be created directly.' },
                 { status: 400 }
             );
         }

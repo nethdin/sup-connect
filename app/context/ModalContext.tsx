@@ -53,15 +53,15 @@ function ConfirmDialog({
 }) {
     const variantStyles = {
         danger: {
-            icon: '⚠️',
+            icon: 'fa-solid fa-triangle-exclamation text-red-600',
             confirmBtn: 'bg-red-600 hover:bg-red-700 text-white',
         },
         warning: {
-            icon: '⚡',
+            icon: 'fa-solid fa-bolt text-amber-600',
             confirmBtn: 'bg-amber-600 hover:bg-amber-700 text-white',
         },
         info: {
-            icon: 'ℹ️',
+            icon: 'fa-solid fa-circle-info text-brand-600',
             confirmBtn: 'bg-brand-600 hover:bg-brand-700 text-white',
         },
     };
@@ -81,7 +81,7 @@ function ConfirmDialog({
             <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 animate-fade-in">
                 <div className="p-6">
                     <div className="flex items-start gap-4">
-                        <span className="text-3xl">{styles.icon}</span>
+                        <i className={`text-3xl ${styles.icon}`}></i>
                         <div className="flex-1">
                             {options.title && (
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">

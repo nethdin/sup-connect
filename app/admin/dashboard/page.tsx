@@ -141,13 +141,7 @@ export default function AdminDashboard() {
                                     href="/admin/users"
                                     className="block w-full px-4 py-3 bg-blue-600 text-white text-center font-medium rounded-lg hover:bg-blue-700 transition"
                                 >
-                                    View All Users
-                                </Link>
-                                <Link
-                                    href="/admin/users/create"
-                                    className="block w-full px-4 py-3 border border-blue-600 text-blue-600 text-center font-medium rounded-lg hover:bg-blue-50 transition"
-                                >
-                                    Create New User
+                                    Manage Users
                                 </Link>
                             </div>
                         </div>

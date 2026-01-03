@@ -92,7 +92,6 @@ export default function Navbar() {
       return [
         { href: '/admin/dashboard', label: 'Dashboard' },
         { href: '/admin/users', label: 'User Management' },
-        { href: '/admin/users/create', label: 'Create User' },
         { href: '/profile', label: 'My Profile' },
       ];
     }
