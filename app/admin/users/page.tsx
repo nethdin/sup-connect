@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
 import { formatDate } from '@/app/lib/utils';
 import { useToast } from '@/app/context/ToastContext';
@@ -16,8 +15,222 @@ interface User {
     created_at: string;
 }
 
+interface UserFormData {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+}
+
+// User Form Modal Component
+function UserFormModal({
+    isOpen,
+    onClose,
+    onSuccess,
+    editUser,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    editUser: User | null;
+}) {
+    const { addToast } = useToast();
+    const [saving, setSaving] = useState(false);
+    const [formData, setFormData] = useState<UserFormData>({
+        name: '',
+        email: '',
+        password: '',
+        role: 'STUDENT',
+    });
+
+    const isEditMode = !!editUser;
+
+    useEffect(() => {
+        if (editUser) {
+            setFormData({
+                name: editUser.name,
+                email: editUser.email,
+                password: '',
+                role: editUser.role,
+            });
+        } else {
+            setFormData({
+                name: '',
+                email: '',
+                password: '',
+                role: 'STUDENT',
+            });
+        }
+    }, [editUser, isOpen]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!isEditMode && !formData.password) {
+            addToast('Password is required for new users', 'error');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const token = localStorage.getItem('authToken');
+            const url = isEditMode
+                ? `/api/admin/users/${editUser.id}`
+                : '/api/admin/users';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const payload: any = {
+                name: formData.name,
+                email: formData.email,
+                role: formData.role,
+            };
+
+            if (formData.password) {
+                payload.password = formData.password;
+            }
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `Failed to ${isEditMode ? 'update' : 'create'} user`);
+            }
+
+            addToast(`User ${isEditMode ? 'updated' : 'created'} successfully`, 'success');
+            onSuccess();
+            onClose();
+        } catch (err) {
+            addToast(err instanceof Error ? err.message : 'Operation failed', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={onClose}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 animate-fade-in">
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            {isEditMode ? 'Edit User' : 'Create New User'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {isEditMode
+                                ? 'Update user information'
+                                : 'Add a new user to the system'}
+                        </p>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Full Name
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password {isEditMode && <span className="text-gray-400">(leave blank to keep)</span>}
+                                </label>
+                                <input
+                                    type="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required={!isEditMode}
+                                    placeholder={isEditMode ? '••••••••' : ''}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Role
+                                </label>
+                                <select
+                                    name="role"
+                                    value={formData.role}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                >
+                                    <option value="STUDENT">Student</option>
+                                    <option value="SUPERVISOR">Supervisor</option>
+                                    <option value="ADMIN">Admin</option>
+                                    <option value="SUPER_ADMIN">Super Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 disabled:bg-gray-400 transition"
+                        >
+                            {saving ? 'Saving...' : isEditMode ? 'Update User' : 'Create User'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// Main Page Component
 export default function AdminUsersPage() {
-    const router = useRouter();
     const { addToast } = useToast();
     const { confirm } = useModal();
     const [users, setUsers] = useState<User[]>([]);
@@ -28,6 +241,10 @@ export default function AdminUsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -84,9 +301,7 @@ export default function AdminUsersPage() {
             variant: 'danger',
         });
 
-        if (!confirmed) {
-            return;
-        }
+        if (!confirmed) return;
 
         setDeletingId(userId);
         try {
@@ -111,8 +326,19 @@ export default function AdminUsersPage() {
         }
     };
 
-    const handleEdit = (userId: string) => {
-        router.push(`/admin/users/${userId}/edit`);
+    const openCreateModal = () => {
+        setEditingUser(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (user: User) => {
+        setEditingUser(user);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingUser(null);
     };
 
     const getRoleBadgeColor = (role: string) => {
@@ -141,12 +367,12 @@ export default function AdminUsersPage() {
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
                             <p className="text-gray-600">View and manage all users in the system</p>
                         </div>
-                        <Link
-                            href="/admin/users/create"
+                        <button
+                            onClick={openCreateModal}
                             className="px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition"
                         >
                             + Create User
-                        </Link>
+                        </button>
                     </div>
 
                     {/* Filters */}
@@ -239,7 +465,7 @@ export default function AdminUsersPage() {
                                                 {canModifyUser(user.role, user.id) ? (
                                                     <>
                                                         <button
-                                                            onClick={() => handleEdit(user.id)}
+                                                            onClick={() => openEditModal(user)}
                                                             className="text-brand-600 hover:text-brand-700 text-sm font-medium"
                                                         >
                                                             Edit
@@ -273,6 +499,14 @@ export default function AdminUsersPage() {
                     </div>
                 </div>
             </main>
+
+            {/* User Form Modal */}
+            <UserFormModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                onSuccess={fetchUsers}
+                editUser={editingUser}
+            />
         </RouteGuard>
     );
 }
