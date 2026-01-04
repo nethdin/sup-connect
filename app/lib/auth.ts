@@ -1,9 +1,9 @@
 // Authentication utilities
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
-import { config } from '@/app/lib/config';
+import { authConfig } from '@/app/lib/config';
 
-const JWT_SECRET = config.auth.jwtSecret;
+const JWT_SECRET = authConfig.jwtSecret;
 
 export interface JWTPayload {
   userId: string;

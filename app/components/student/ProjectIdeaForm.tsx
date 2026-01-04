@@ -64,24 +64,6 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
-  const addKeyword = () => {
-    if (keywordInput.trim() && !formData.keywords.includes(keywordInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...prev.keywords, keywordInput.trim()],
-      }));
-      setKeywordInput('');
-    }
-  };
-
-  const removeKeyword = (keyword: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      keywords: prev.keywords.filter((k) => k !== keyword),
-    }));
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);

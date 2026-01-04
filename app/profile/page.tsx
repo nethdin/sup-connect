@@ -111,17 +111,6 @@ export default function ProfilePage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleAddTag = () => {
-        if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-            setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-            setTagInput('');
-        }
-    };
-
-    const handleRemoveTag = (tag: string) => {
-        setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -400,8 +389,8 @@ export default function ProfilePage() {
                                                     <label
                                                         key={tag.id}
                                                         className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
-                                                                ? 'bg-brand-600 text-white border-brand-600'
-                                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                                                            ? 'bg-brand-600 text-white border-brand-600'
+                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
                                                             }`}
                                                     >
                                                         <input

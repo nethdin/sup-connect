@@ -104,25 +104,6 @@ export default function SupervisorProfileForm() {
     }
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()],
-      }));
-      setTagInput('');
-      setSuccess(false);
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t !== tag),
-    }));
-    setSuccess(false);
-  };
-
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -246,8 +227,8 @@ export default function SupervisorProfileForm() {
                 <label
                   key={tag.id}
                   className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
-                      ? 'bg-brand-600 text-white border-brand-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
                     }`}
                 >
                   <input
