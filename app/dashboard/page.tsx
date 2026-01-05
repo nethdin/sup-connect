@@ -25,7 +25,6 @@ interface BookingRequest {
   supervisor_id: string;
   supervisor_name: string;
   supervisor_email: string;
-  specialization: string;
   department: string;
 }
 
@@ -157,7 +156,7 @@ export default function StudentDashboard() {
                         {assignment.supervisor?.user?.name}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {assignment.supervisor?.specialization}
+                        {assignment.supervisor?.department || 'No department'}
                       </p>
                       <p className="text-sm text-gray-600 mt-2">
                         {assignment.supervisor?.bio}
@@ -211,9 +210,9 @@ export default function StudentDashboard() {
                             </Link>
                           </div>
                           <div className="flex items-center gap-2 text-gray-700">
-                            <i className="fa-solid fa-flask w-4"></i>
-                            <span className="font-medium">Specialization:</span>
-                            <span>{pendingRequest.specialization || 'N/A'}</span>
+                            <i className="fa-solid fa-building w-4"></i>
+                            <span className="font-medium">Department:</span>
+                            <span>{pendingRequest.department || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2 text-gray-700">
                             <i className="fa-solid fa-envelope w-4"></i>
@@ -334,9 +333,6 @@ export default function StudentDashboard() {
                       <h3 className="font-semibold text-gray-900 text-lg">
                         {projectIdea.title}
                       </h3>
-                      <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                        {projectIdea.category}
-                      </span>
                     </div>
 
                     <div>
@@ -346,16 +342,16 @@ export default function StudentDashboard() {
                       </p>
                     </div>
 
-                    {projectIdea.keywords && projectIdea.keywords.length > 0 && (
+                    {projectIdea.tags && projectIdea.tags.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Keywords</h4>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Tags / Tech Stack</h4>
                         <div className="flex flex-wrap gap-2">
-                          {projectIdea.keywords.map((keyword, index) => (
+                          {projectIdea.tags.map((tag, index) => (
                             <span
                               key={index}
                               className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
                             >
-                              {keyword}
+                              {tag}
                             </span>
                           ))}
                         </div>

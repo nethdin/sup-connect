@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { email, password, name, role, department, registrationNo, specialization, tags, bio, maxSlots, yearsOfExperience } = body;
+        const { email, password, name, role, department, registrationNo, tags, bio, maxSlots, yearsOfExperience } = body;
 
         // Validation
         if (!email || !password || !name || !role) {
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (role === 'SUPERVISOR' && (!specialization || !tags || !bio)) {
+        if (role === 'SUPERVISOR' && (!tags || !bio)) {
             return NextResponse.json(
-                { error: 'Specialization, tags, and bio are required for supervisors' },
+                { error: 'Tags and bio are required for supervisors' },
                 { status: 400 }
             );
         }
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
         } else if (role === 'SUPERVISOR') {
             const profileId = uuidv4();
             await query(
-                'INSERT INTO supervisor_profiles (id, user_id, department, specialization, tags, bio, years_of_experience, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [profileId, userId, department || null, specialization, JSON.stringify(tags), bio, yearsOfExperience || 0, maxSlots || 5, 0]
+                'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, years_of_experience, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [profileId, userId, department || null, JSON.stringify(tags), bio, yearsOfExperience || 0, maxSlots || 5, 0]
             );
         }
 

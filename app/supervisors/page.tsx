@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supervisorAPI, studentAPI, configAPI, SupervisorProfile as ApiSupervisorProfile, Specialization } from '@/app/lib/api-client';
+import { supervisorAPI, studentAPI, SupervisorProfile as ApiSupervisorProfile } from '@/app/lib/api-client';
 import SupervisorCard from '@/app/components/supervisor/SupervisorCard';
 import { SupervisorProfile } from '@/app/lib/types';
 import RouteGuard from '@/app/components/RouteGuard';
@@ -15,8 +15,6 @@ export default function SupervisorsPage() {
   const [filteredSupervisors, setFilteredSupervisors] = useState<
     SupervisorProfile[]
   >([]);
-  const [specializations, setSpecializations] = useState<Specialization[]>([]);
-  const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,15 +29,11 @@ export default function SupervisorsPage() {
       setIsLoading(true);
       setError(null);
 
-      // Fetch supervisors and specializations in parallel
-      const [supervisorsRes, specsRes] = await Promise.all([
-        supervisorAPI.getAll(),
-        configAPI.getSpecializations(),
-      ]);
+      // Fetch supervisors
+      const supervisorsRes = await supervisorAPI.getAll();
 
       setSupervisors(supervisorsRes.supervisors as SupervisorProfile[]);
       setFilteredSupervisors(supervisorsRes.supervisors as SupervisorProfile[]);
-      setSpecializations(specsRes.specializations);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -50,12 +44,6 @@ export default function SupervisorsPage() {
 
   useEffect(() => {
     let filtered = supervisors;
-
-    if (selectedSpecialization) {
-      filtered = filtered.filter(
-        (s) => s.specialization === selectedSpecialization
-      );
-    }
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -69,7 +57,7 @@ export default function SupervisorsPage() {
     }
 
     setFilteredSupervisors(filtered);
-  }, [selectedSpecialization, searchTerm, supervisors]);
+  }, [searchTerm, supervisors]);
 
   const handleRequest = async (supervisorId: string) => {
     try {
@@ -119,32 +107,9 @@ export default function SupervisorsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name, specialization, or tags..."
+                placeholder="Search by name, bio, or tags..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               />
-            </div>
-
-            {/* Specialization Filter */}
-            <div>
-              <label
-                htmlFor="specialization"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Specialization
-              </label>
-              <select
-                id="specialization"
-                value={selectedSpecialization}
-                onChange={(e) => setSelectedSpecialization(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              >
-                <option value="">All Specializations</option>
-                {specializations.map((spec) => (
-                  <option key={spec.id} value={spec.name}>
-                    {spec.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 
@@ -174,15 +139,14 @@ export default function SupervisorsPage() {
         ) : filteredSupervisors.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No supervisors found matching your criteria</p>
-            {(selectedSpecialization || searchTerm) && (
+            {searchTerm && (
               <button
                 onClick={() => {
-                  setSelectedSpecialization('');
                   setSearchTerm('');
                 }}
                 className="mt-4 text-blue-600 hover:text-blue-700 underline"
               >
-                Clear filters
+                Clear search
               </button>
             )}
           </div>

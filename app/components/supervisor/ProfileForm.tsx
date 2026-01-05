@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { configAPI, Specialization, Tag } from '@/app/lib/api-client';
+import { configAPI, Tag } from '@/app/lib/api-client';
 
 interface ProfileFormData {
-  specialization: string;
   tags: string[];
   bio: string;
   maxSlots: number;
@@ -12,20 +11,19 @@ interface ProfileFormData {
 
 export default function SupervisorProfileForm() {
   const [formData, setFormData] = useState<ProfileFormData>({
-    specialization: '',
     tags: [],
     bio: '',
     maxSlots: 5,
   });
   const [originalData, setOriginalData] = useState<ProfileFormData | null>(null);
-  const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [success, setSuccess] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch existing profile and specializations on mount
+  // Fetch existing profile and tags on mount
   useEffect(() => {
     fetchData();
   }, []);
@@ -35,23 +33,20 @@ export default function SupervisorProfileForm() {
       setIsFetching(true);
       const token = localStorage.getItem('authToken');
 
-      // Fetch profile, specializations and tags in parallel
-      const [profileRes, specsRes, tagsRes] = await Promise.all([
+      // Fetch profile and tags in parallel
+      const [profileRes, tagsRes] = await Promise.all([
         fetch('/api/supervisor/profile', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        configAPI.getSpecializations(),
         configAPI.getTags(),
       ]);
 
-      setSpecializations(specsRes.specializations);
       setAvailableTags(tagsRes.tags);
 
       if (profileRes.ok) {
         const data = await profileRes.json();
         if (data.profile) {
           const profileData: ProfileFormData = {
-            specialization: data.profile.specialization || '',
             tags: data.profile.tags || [],
             bio: data.profile.bio || '',
             maxSlots: data.profile.maxSlots || 5,
@@ -67,29 +62,29 @@ export default function SupervisorProfileForm() {
     }
   };
 
+  // Filter tags based on search
+  const filteredTags = useMemo(() => {
+    if (!searchTerm) return availableTags;
+    return availableTags.filter(tag =>
+      tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [availableTags, searchTerm]);
+
   // Check if form has changes compared to original data
   const hasChanges = useMemo(() => {
     if (!originalData) {
       // No original data means it's a new profile - enable if form is valid
-      return formData.specialization !== '' &&
-        formData.tags.length > 0 &&
-        formData.bio.trim() !== '';
+      return formData.tags.length > 0 && formData.bio.trim() !== '';
     }
 
     // Compare current form data with original
     return (
-      formData.specialization !== originalData.specialization ||
       formData.bio !== originalData.bio ||
       formData.maxSlots !== originalData.maxSlots ||
       formData.tags.length !== originalData.tags.length ||
       !formData.tags.every((tag, index) => tag === originalData.tags[index])
     );
   }, [formData, originalData]);
-
-  const handleSpecializationChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, specialization: value }));
-    setSuccess(false);
-  };
 
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, bio: e.target.value }));
@@ -104,11 +99,19 @@ export default function SupervisorProfileForm() {
     }
   };
 
+  const toggleTag = (tagName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tagName)
+        ? prev.tags.filter(t => t !== tagName)
+        : [...prev.tags, tagName]
+    }));
+    setSuccess(false);
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.specialization)
-      newErrors.specialization = 'Specialization is required';
     if (formData.tags.length === 0) newErrors.tags = 'Add at least one tag';
     if (!formData.bio.trim()) newErrors.bio = 'Bio is required';
     if (formData.maxSlots < 1)
@@ -179,77 +182,45 @@ export default function SupervisorProfileForm() {
         </div>
       )}
 
-      {/* Specialization */}
-      <div>
-        <label
-          htmlFor="specialization"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Specialization
-        </label>
-        <select
-          id="specialization"
-          value={formData.specialization}
-          onChange={(e) => handleSpecializationChange(e.target.value)}
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.specialization ? 'border-red-500' : 'border-gray-300'
-            }`}
-        >
-          <option value="">Select a specialization</option>
-          {specializations.map((spec) => (
-            <option key={spec.id} value={spec.name}>
-              {spec.name}
-            </option>
-          ))}
-        </select>
-        {errors.specialization && (
-          <p className="mt-1 text-sm text-red-600">{errors.specialization}</p>
-        )}
-      </div>
-
-      {/* Tags */}
+      {/* Tags / Expertise */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Research Tags / Expertise</label>
-        <p className="text-sm text-gray-500 mb-3">Select tags that match your expertise (required):</p>
+        <p className="text-sm text-gray-500 mb-3">Select tags that match your expertise. Students will find you based on these tags.</p>
 
-        {/* Group tags by category */}
-        {Object.entries(
-          availableTags.reduce((acc, tag) => {
-            const cat = tag.category || 'Other';
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push(tag);
-            return acc;
-          }, {} as Record<string, Tag[]>)
-        ).map(([category, tags]) => (
-          <div key={category} className="mb-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category}</h4>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <label
-                  key={tag.id}
-                  className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
-                    ? 'bg-brand-600 text-white border-brand-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
-                    }`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={formData.tags.includes(tag.name)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag.name] }));
-                      } else {
-                        setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag.name) }));
-                      }
-                    }}
-                  />
-                  {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
-                  {tag.name}
-                </label>
-              ))}
-            </div>
+        {/* Search */}
+        <div className="relative mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i className="fa-solid fa-search text-gray-400"></i>
           </div>
-        ))}
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search tags..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+          />
+        </div>
+
+        {/* Tags Grid */}
+        <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+          {filteredTags.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => toggleTag(tag.name)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                }`}
+            >
+              {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
+              {tag.name}
+            </button>
+          ))}
+          {filteredTags.length === 0 && (
+            <p className="text-gray-500 text-sm py-4 w-full text-center">No tags found</p>
+          )}
+        </div>
 
         {formData.tags.length > 0 && (
           <p className="text-sm text-brand-600 mt-2">

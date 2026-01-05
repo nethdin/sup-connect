@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { studentAPI, ProjectIdea, configAPI, ProjectCategory, Tag } from '@/app/lib/api-client';
+import { studentAPI, ProjectIdea, configAPI, Tag } from '@/app/lib/api-client';
 import { useToast } from '@/app/context/ToastContext';
 import TagSelector from '@/app/components/common/TagSelector';
 
@@ -14,8 +14,7 @@ interface ProjectIdeaFormProps {
 interface ProjectIdeaData {
   title: string;
   description: string;
-  category: string;
-  keywords: string[];
+  tags: string[];
   attachments: File[];
 }
 
@@ -24,23 +23,17 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
-    keywords: [] as string[],
+    tags: [] as string[],
     attachments: [] as File[],
   });
-  const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Load categories and tags on mount
+  // Load tags on mount
   useEffect(() => {
-    Promise.all([
-      configAPI.getCategories(),
-      configAPI.getTags(),
-    ]).then(([catRes, tagsRes]) => {
-      setCategories(catRes.categories);
+    configAPI.getTags().then((tagsRes) => {
       setAvailableTags(tagsRes.tags);
     });
   }, []);
@@ -51,8 +44,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
       setFormData({
         title: initialData.title || '',
         description: initialData.description || '',
-        category: initialData.category || '',
-        keywords: initialData.keywords || [],
+        tags: initialData.tags || [],
         attachments: [],
       });
     }
@@ -91,9 +83,8 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
     else if (formData.description.length > 1000)
       newErrors.description = 'Description must not exceed 1000 characters';
 
-    if (!formData.category) newErrors.category = 'Category is required';
-    if (formData.keywords.length === 0)
-      newErrors.keywords = 'Add at least one keyword';
+    if (formData.tags.length === 0)
+      newErrors.tags = 'Add at least one tag';
 
     return newErrors;
   };
@@ -113,8 +104,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
       const result = await studentAPI.submitIdea({
         title: formData.title,
         description: formData.description,
-        category: formData.category,
-        keywords: formData.keywords,
+        tags: formData.tags,
         attachments: [], // TODO: Handle file uploads separately
       });
 
@@ -126,8 +116,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
         setFormData({
           title: '',
           description: '',
-          category: '',
-          keywords: [],
+          tags: [],
           attachments: [],
         });
       }
@@ -203,48 +192,21 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
       </div>
 
       {/* Category */}
-      <div>
-        <label
-          htmlFor="category"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Category
-        </label>
-        <select
-          id="category"
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.category ? 'border-red-500' : 'border-gray-300'
-            }`}
-        >
-          <option value="">Select a category</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.name}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-        {errors.category && (
-          <p className="mt-1 text-sm text-red-600">{errors.category}</p>
-        )}
-      </div>
-
-      {/* Keywords (Select from predefined tags) */}
+      {/* Tags (Select from predefined tags) */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Keywords
+          Tech Stack / Keywords
         </label>
         <p className="text-sm text-gray-500 mb-3">
-          Select keywords that describe your project, or use AI to suggest tags based on your description.
+          Select technologies and keywords that describe your project, or use AI to suggest tags based on your description.
         </p>
 
         <TagSelector
           availableTags={availableTags}
-          selectedTags={formData.keywords}
-          onTagsChange={(keywords) => setFormData(prev => ({ ...prev, keywords }))}
+          selectedTags={formData.tags}
+          onTagsChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
           placeholder="Search or browse tags..."
-          error={errors.keywords}
+          error={errors.tags}
           showAIButton={formData.description.length >= 30}
           onAISuggest={async () => {
             if (formData.description.length < 30) {
@@ -254,7 +216,7 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
             setAiLoading(true);
             try {
               const result = await configAPI.suggestTags(formData.description);
-              setFormData(prev => ({ ...prev, keywords: result.suggestedTags }));
+              setFormData(prev => ({ ...prev, tags: result.suggestedTags }));
               if (result.newTagsCreated > 0) {
                 // Refresh tags list to include new ones
                 const tagsRes = await configAPI.getTags();

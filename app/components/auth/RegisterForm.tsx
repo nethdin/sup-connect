@@ -18,7 +18,6 @@ export default function RegisterForm() {
     researchInterests: '',
     preferredFields: [] as string[],
     // Supervisor-specific fields
-    specialization: '',
     tags: '',
     bio: '',
     maxSlots: '5',
@@ -63,10 +62,9 @@ export default function RegisterForm() {
       // Supervisor-specific validation
       if (formData.role === 'SUPERVISOR') {
         if (!formData.department) newErrors.department = 'Department is required';
-        if (!formData.specialization) newErrors.specialization = 'Specialization is required';
         if (!formData.tags) newErrors.tags = 'Tags are required';
         if (!formData.bio) newErrors.bio = 'Bio is required';
-        if (!formData.maxSlots || parseInt(formData.maxSlots) < 1) 
+        if (!formData.maxSlots || parseInt(formData.maxSlots) < 1)
           newErrors.maxSlots = 'Max slots must be at least 1';
       }
     }
@@ -114,7 +112,6 @@ export default function RegisterForm() {
         if (formData.preferredFields.length > 0) payload.preferredFields = formData.preferredFields;
       } else if (formData.role === 'SUPERVISOR') {
         payload.department = formData.department;
-        payload.specialization = formData.specialization;
         payload.tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
         payload.bio = formData.bio;
         payload.maxSlots = parseInt(formData.maxSlots);
@@ -133,16 +130,16 @@ export default function RegisterForm() {
       }
 
       const data = await response.json();
-      
+
       // Store token in localStorage and cookie
       if (data.token) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         // Set cookie for server-side middleware
         document.cookie = `authToken=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
       }
-      
+
       // Redirect based on role
       if (data.user.role === 'SUPERVISOR') {
         window.location.href = '/supervisor/dashboard';
@@ -163,15 +160,13 @@ export default function RegisterForm() {
       {/* Progress Indicator */}
       <div className="flex items-center justify-center mb-6">
         <div className="flex items-center space-x-2">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-            step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-          }`}>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
             1
           </div>
           <div className={`h-1 w-12 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-            step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-          }`}>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
             2
           </div>
         </div>
@@ -187,7 +182,7 @@ export default function RegisterForm() {
       {step === 1 && (
         <>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-          
+
           {/* Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
@@ -199,9 +194,8 @@ export default function RegisterForm() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="John Doe"
             />
             {errors.name && (
@@ -220,9 +214,8 @@ export default function RegisterForm() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="you@example.com"
             />
             {errors.email && (
@@ -261,9 +254,8 @@ export default function RegisterForm() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="••••••••"
             />
             {errors.password && (
@@ -285,9 +277,8 @@ export default function RegisterForm() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="••••••••"
             />
             {errors.confirmPassword && (
@@ -324,9 +315,8 @@ export default function RegisterForm() {
               name="department"
               value={formData.department}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                errors.department ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.department ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="Computer Science"
             />
             {errors.department && (
@@ -348,9 +338,8 @@ export default function RegisterForm() {
                   name="registrationNo"
                   value={formData.registrationNo}
                   onChange={handleChange}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    errors.registrationNo ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.registrationNo ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="2021/CS/001"
                 />
                 {errors.registrationNo && (
@@ -381,10 +370,10 @@ export default function RegisterForm() {
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {['AI/ML', 'Web Dev', 'Mobile', 'Security', 'Data Sci', 'IoT'].map((field) => {
-                    const fullField = field === 'Web Dev' ? 'Web Development' 
+                    const fullField = field === 'Web Dev' ? 'Web Development'
                       : field === 'Security' ? 'Cybersecurity'
-                      : field === 'Data Sci' ? 'Data Science'
-                      : field === 'Mobile' ? 'Mobile Apps' : field;
+                        : field === 'Data Sci' ? 'Data Science'
+                          : field === 'Mobile' ? 'Mobile Apps' : field;
                     return (
                       <label key={field} className="flex items-center">
                         <input
@@ -413,34 +402,6 @@ export default function RegisterForm() {
           {/* Supervisor-specific fields */}
           {formData.role === 'SUPERVISOR' && (
             <>
-              {/* Specialization */}
-              <div>
-                <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
-                  Specialization
-                </label>
-                <select
-                  id="specialization"
-                  name="specialization"
-                  value={formData.specialization}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    errors.specialization ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select specialization</option>
-                  <option value="AI/ML">AI/ML</option>
-                  <option value="Web Development">Web Development</option>
-                  <option value="Mobile Apps">Mobile Apps</option>
-                  <option value="Cybersecurity">Cybersecurity</option>
-                  <option value="Data Science">Data Science</option>
-                  <option value="IoT">IoT</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.specialization && (
-                  <p className="mt-1 text-sm text-red-600">{errors.specialization}</p>
-                )}
-              </div>
-
               {/* Tags */}
               <div>
                 <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
@@ -452,9 +413,8 @@ export default function RegisterForm() {
                   name="tags"
                   value={formData.tags}
                   onChange={handleChange}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    errors.tags ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.tags ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="e.g., ML, Python, CV"
                 />
                 {errors.tags && (
@@ -473,9 +433,8 @@ export default function RegisterForm() {
                   value={formData.bio}
                   onChange={handleChange}
                   rows={3}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none ${
-                    errors.bio ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none ${errors.bio ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Your expertise and research areas..."
                 />
                 {errors.bio && (
@@ -496,9 +455,8 @@ export default function RegisterForm() {
                   onChange={handleChange}
                   min="1"
                   max="10"
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-                    errors.maxSlots ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.maxSlots ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {errors.maxSlots && (
                   <p className="mt-1 text-sm text-red-600">{errors.maxSlots}</p>

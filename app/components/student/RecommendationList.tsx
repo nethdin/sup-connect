@@ -4,9 +4,10 @@ import { SupervisorProfile } from '@/app/lib/api-client';
 
 interface RecommendationItem {
   supervisor: SupervisorProfile;
-  matchedKeywords: string[];
+  matchedTags: string[];
   matchCount: number;
   isFullMatch: boolean;
+  score: number;
 }
 
 interface RecommendationListProps {
@@ -82,9 +83,6 @@ export default function RecommendationList({
                 <h4 className="font-semibold text-gray-900">
                   {index + 1}. {rec.supervisor.user?.name}
                 </h4>
-                <span className="text-xs font-medium text-gray-500">
-                  {rec.supervisor.specialization}
-                </span>
                 {rec.isFullMatch && (
                   <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded">
                     100% Match
@@ -102,19 +100,20 @@ export default function RecommendationList({
               <div className="text-2xl font-bold text-blue-600">
                 {rec.matchCount}
               </div>
-              <p className="text-xs text-gray-500">Keywords Matched</p>
+              <p className="text-xs text-gray-500">Tags Matched</p>
+              <p className="text-xs text-gray-400">Score: {rec.score}</p>
             </div>
           </div>
 
-          {/* Matched Keywords */}
-          {rec.matchedKeywords.length > 0 && (
+          {/* Matched Tags */}
+          {rec.matchedTags.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
-              {rec.matchedKeywords.map((keyword) => (
+              {rec.matchedTags.map((tag) => (
                 <span
-                  key={keyword}
+                  key={tag}
                   className="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded"
                 >
-                  ✓ {keyword}
+                  ✓ {tag}
                 </span>
               ))}
             </div>

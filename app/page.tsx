@@ -62,7 +62,7 @@ export default function Home() {
               Discover Supervisors
             </h3>
             <p className="text-gray-600">
-              Browse and filter supervisors by specialization, expertise, and
+              Browse and filter supervisors by tags, expertise, and
               availability.
             </p>
           </div>

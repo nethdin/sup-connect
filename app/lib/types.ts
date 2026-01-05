@@ -26,7 +26,6 @@ export interface SupervisorProfile {
   id: string;
   userId: string;
   department?: string;
-  specialization: string;
   tags: string[];
   bio: string;
   yearsOfExperience: number;
@@ -42,8 +41,7 @@ export interface StudentProjectIdea {
   studentId: string;
   title: string;
   description: string;
-  category: string;
-  keywords: string[];
+  tags: string[];
   attachments: string[];
   createdAt: Date;
   recommendations?: RecommendedSupervisor[];
@@ -103,7 +101,6 @@ export interface RegisterFormData {
 }
 
 export interface SupervisorProfileFormData {
-  specialization: string;
   tags: string[];
   bio: string;
   maxSlots: number;
@@ -112,7 +109,6 @@ export interface SupervisorProfileFormData {
 export interface ProjectIdeaFormData {
   title: string;
   description: string;
-  category: string;
-  keywords: string[];
+  tags: string[];
   attachments: File[];
 }

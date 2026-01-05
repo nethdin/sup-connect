@@ -19,7 +19,7 @@ export default function AdminDashboard() {
         supervisors: 0,
         admins: 0,
     });
-    const [activeModal, setActiveModal] = useState<'tags' | 'specializations' | 'categories' | null>(null);
+    const [activeModal, setActiveModal] = useState<'tags' | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">Configuration Management</h2>
                             <p className="text-gray-600 mb-6">
-                                Manage tags, specializations, and project categories.
+                                Manage tags for matching supervisors and students.
                             </p>
                             <div className="space-y-3">
                                 <button
@@ -159,18 +159,6 @@ export default function AdminDashboard() {
                                     className="block w-full px-4 py-3 bg-purple-600 text-white text-center font-medium rounded-lg hover:bg-purple-700 transition"
                                 >
                                     Manage Tags
-                                </button>
-                                <button
-                                    onClick={() => setActiveModal('specializations')}
-                                    className="block w-full px-4 py-3 bg-indigo-600 text-white text-center font-medium rounded-lg hover:bg-indigo-700 transition"
-                                >
-                                    Manage Specializations
-                                </button>
-                                <button
-                                    onClick={() => setActiveModal('categories')}
-                                    className="block w-full px-4 py-3 bg-teal-600 text-white text-center font-medium rounded-lg hover:bg-teal-700 transition"
-                                >
-                                    Manage Categories
                                 </button>
                             </div>
                         </div>
@@ -184,10 +172,7 @@ export default function AdminDashboard() {
                     isOpen={!!activeModal}
                     onClose={() => setActiveModal(null)}
                     type={activeModal}
-                    title={
-                        activeModal === 'tags' ? 'Manage Tags' :
-                            activeModal === 'specializations' ? 'Manage Specializations' : 'Manage Categories'
-                    }
+                    title="Manage Tags"
                 />
             )}
         </RouteGuard>

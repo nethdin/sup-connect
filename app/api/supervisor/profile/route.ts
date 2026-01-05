@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
         id: profile.id,
         userId: profile.user_id,
         department: profile.department,
-        specialization: profile.specialization,
         tags: tags || [],
         bio: profile.bio,
         maxSlots: profile.max_slots,

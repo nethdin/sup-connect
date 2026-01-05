@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
         if (user.role === 'SUPERVISOR') {
             profileData = await queryOne<any>(
-                `SELECT id, department, specialization, tags, bio, 
+                `SELECT id, department, tags, bio, 
                         years_of_experience, max_slots, current_slots
                  FROM supervisor_profiles WHERE user_id = ?`,
                 [auth.userId]
@@ -136,17 +136,13 @@ export async function PUT(request: NextRequest) {
         // Update role-specific profile
         if (profile) {
             if (user.role === 'SUPERVISOR') {
-                const { department, specialization, tags, bio, yearsOfExperience, maxSlots } = profile;
+                const { department, tags, bio, yearsOfExperience, maxSlots } = profile;
                 const profUpdates: string[] = [];
                 const profValues: any[] = [];
 
                 if (department !== undefined) {
                     profUpdates.push('department = ?');
                     profValues.push(department);
-                }
-                if (specialization !== undefined) {
-                    profUpdates.push('specialization = ?');
-                    profValues.push(specialization);
                 }
                 if (tags !== undefined) {
                     profUpdates.push('tags = ?');

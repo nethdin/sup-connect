@@ -123,7 +123,7 @@ export default function SupervisorDetailPage() {
                     {supervisor.user?.email}
                   </p>
                   <div className="inline-block bg-blue-500 bg-opacity-50 px-3 py-1 rounded-full text-sm font-medium">
-                    {supervisor.specialization}
+                    {supervisor.department || 'No department'}
                   </div>
                 </div>
 

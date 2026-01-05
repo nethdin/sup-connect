@@ -16,7 +16,7 @@ interface Item {
 interface ConfigManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
-    type: 'tags' | 'specializations' | 'categories';
+    type: 'tags';
     title: string;
 }
 
@@ -152,7 +152,7 @@ export default function ConfigManagementModal({
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
                     <h2 className="text-xl font-bold text-gray-900">
-                        <i className={`fa-solid fa-${type === 'tags' ? 'tags' : type === 'specializations' ? 'flask' : 'folder'} mr-2 text-brand-600`}></i>
+                        <i className="fa-solid fa-tags mr-2 text-brand-600"></i>
                         {title}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -180,25 +180,13 @@ export default function ConfigManagementModal({
                             </div>
                             {type === 'tags' && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category (Optional)</label>
                                     <input
                                         type="text"
                                         value={formData.category}
                                         onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                                         placeholder="e.g., AI, Web, Cloud..."
-                                    />
-                                </div>
-                            )}
-                            {type !== 'tags' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <input
-                                        type="text"
-                                        value={formData.description}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                                        placeholder="Optional description..."
                                     />
                                 </div>
                             )}
@@ -292,8 +280,8 @@ export default function ConfigManagementModal({
                                         <button
                                             onClick={() => handleToggleActive(item)}
                                             className={`p-2 rounded-lg transition ${item.is_active
-                                                    ? 'text-red-600 hover:bg-red-50'
-                                                    : 'text-green-600 hover:bg-green-50'
+                                                ? 'text-red-600 hover:bg-red-50'
+                                                : 'text-green-600 hover:bg-green-50'
                                                 }`}
                                             title={item.is_active ? 'Deactivate' : 'Activate'}
                                         >

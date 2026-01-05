@@ -52,15 +52,14 @@ export default function RequestList({
                       : request.supervisor?.user?.name}
                   </h4>
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      request.status === 'ACCEPTED'
-                        ? 'bg-green-100 text-green-700'
-                        : request.status === 'DECLINED'
-                          ? 'bg-red-100 text-red-700'
-                          : request.status === 'SLOT_FULL'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-blue-100 text-blue-700'
-                    }`}
+                    className={`px-2 py-1 text-xs font-medium rounded-full ${request.status === 'ACCEPTED'
+                      ? 'bg-green-100 text-green-700'
+                      : request.status === 'DECLINED'
+                        ? 'bg-red-100 text-red-700'
+                        : request.status === 'SLOT_FULL'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
                   >
                     {request.status}
                   </span>
@@ -88,7 +87,7 @@ export default function RequestList({
                           Project: {request.projectIdea.title}
                         </h5>
                         <p className="text-xs text-gray-600 mt-1">
-                          Category: {request.projectIdea.category}
+                          Tags: {request.projectIdea.tags?.join(', ') || 'No tags'}
                         </p>
                       </div>
                     </div>
@@ -126,7 +125,7 @@ export default function RequestList({
                   </h6>
                   <p className="text-sm text-gray-900">{request.projectIdea.title}</p>
                 </div>
-                
+
                 <div>
                   <h6 className="text-xs font-semibold text-gray-700 uppercase mb-1">
                     Description
@@ -136,27 +135,18 @@ export default function RequestList({
                   </p>
                 </div>
 
-                <div>
-                  <h6 className="text-xs font-semibold text-gray-700 uppercase mb-1">
-                    Category
-                  </h6>
-                  <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                    {request.projectIdea.category}
-                  </span>
-                </div>
-
-                {request.projectIdea.keywords && request.projectIdea.keywords.length > 0 && (
+                {request.projectIdea.tags && request.projectIdea.tags.length > 0 && (
                   <div>
                     <h6 className="text-xs font-semibold text-gray-700 uppercase mb-2">
-                      Keywords
+                      Tags / Tech Stack
                     </h6>
                     <div className="flex flex-wrap gap-2">
-                      {request.projectIdea.keywords.map((keyword, index) => (
+                      {request.projectIdea.tags.map((tag, index) => (
                         <span
                           key={index}
                           className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
                         >
-                          {keyword}
+                          {tag}
                         </span>
                       ))}
                     </div>

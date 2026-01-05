@@ -52,7 +52,6 @@ CREATE TABLE `supervisor_profiles` (
   `id` VARCHAR(36) NOT NULL,
   `user_id` VARCHAR(36) NOT NULL,
   `department` VARCHAR(255) DEFAULT NULL,
-  `specialization` VARCHAR(255) NOT NULL,
   `tags` JSON NOT NULL,
   `bio` TEXT NOT NULL,
   `years_of_experience` INT NOT NULL DEFAULT 0,
@@ -63,7 +62,6 @@ CREATE TABLE `supervisor_profiles` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user` (`user_id`),
-  KEY `idx_specialization` (`specialization`),
   KEY `idx_department` (`department`),
   KEY `idx_slots` (`current_slots`, `max_slots`),
   CONSTRAINT `fk_supervisor_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
@@ -78,14 +76,12 @@ CREATE TABLE `project_ideas` (
   `student_id` VARCHAR(36) NOT NULL,
   `title` VARCHAR(500) NOT NULL,
   `description` TEXT NOT NULL,
-  `category` VARCHAR(255) NOT NULL,
-  `keywords` JSON NOT NULL,
+  `tags` JSON NOT NULL,
   `attachments` JSON DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_student` (`student_id`),
-  KEY `idx_category` (`category`),
   CONSTRAINT `fk_idea_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

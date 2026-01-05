@@ -30,7 +30,6 @@ export default function TagSelector({
 }: TagSelectorProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Close dropdown when clicking outside
@@ -44,34 +43,13 @@ export default function TagSelector({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Group and filter tags
-    const groupedTags = useMemo(() => {
-        const filtered = searchTerm
-            ? availableTags.filter(tag =>
-                tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                tag.category?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            : availableTags;
-
-        return filtered.reduce((acc, tag) => {
-            const cat = tag.category || 'Other';
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push(tag);
-            return acc;
-        }, {} as Record<string, Tag[]>);
+    // Filter tags based on search
+    const filteredTags = useMemo(() => {
+        if (!searchTerm) return availableTags;
+        return availableTags.filter(tag =>
+            tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
     }, [availableTags, searchTerm]);
-
-    const toggleCategory = (category: string) => {
-        setExpandedCategories(prev => {
-            const next = new Set(prev);
-            if (next.has(category)) {
-                next.delete(category);
-            } else {
-                next.add(category);
-            }
-            return next;
-        });
-    };
 
     const toggleTag = (tagName: string) => {
         if (selectedTags.includes(tagName)) {
@@ -85,13 +63,6 @@ export default function TagSelector({
     const removeTag = (tagName: string) => {
         onTagsChange(selectedTags.filter(t => t !== tagName));
     };
-
-    // Expand all categories when searching
-    useEffect(() => {
-        if (searchTerm) {
-            setExpandedCategories(new Set(Object.keys(groupedTags)));
-        }
-    }, [searchTerm, groupedTags]);
 
     return (
         <div className="relative" ref={containerRef}>
@@ -163,56 +134,37 @@ export default function TagSelector({
                 )}
             </div>
 
-            {/* Dropdown */}
+            {/* Dropdown - Flat list of tags */}
             {isOpen && !disabled && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
-                    {Object.keys(groupedTags).length === 0 ? (
+                    {filteredTags.length === 0 ? (
                         <div className="p-4 text-center text-gray-500">
                             {searchTerm ? 'No tags found' : 'No tags available'}
                         </div>
                     ) : (
-                        Object.entries(groupedTags).map(([category, tags]) => (
-                            <div key={category} className="border-b border-gray-100 last:border-b-0">
-                                {/* Category Header */}
-                                <button
-                                    type="button"
-                                    onClick={() => toggleCategory(category)}
-                                    className="w-full px-4 py-2 flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 transition"
-                                >
-                                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        {category} ({tags.length})
-                                    </span>
-                                    <i className={`fa-solid fa-chevron-${expandedCategories.has(category) ? 'up' : 'down'} text-gray-400 text-xs`}></i>
-                                </button>
-
-                                {/* Tags in Category */}
-                                {expandedCategories.has(category) && (
-                                    <div className="p-2 flex flex-wrap gap-2">
-                                        {tags.map(tag => {
-                                            const isSelected = selectedTags.includes(tag.name);
-                                            const isDisabled = !isSelected && maxSelections && selectedTags.length >= maxSelections;
-                                            return (
-                                                <button
-                                                    key={tag.id}
-                                                    type="button"
-                                                    onClick={() => !isDisabled && toggleTag(tag.name)}
-                                                    disabled={isDisabled as boolean}
-                                                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${isSelected
-                                                            ? 'bg-brand-600 text-white border-brand-600'
-                                                            : isDisabled
-                                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400 hover:bg-brand-50'
-                                                        }`}
-                                                >
-                                                    {isSelected && <i className="fa-solid fa-check mr-1"></i>}
-                                                    {tag.name}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        ))
+                        <div className="p-3 flex flex-wrap gap-2">
+                            {filteredTags.map(tag => {
+                                const isSelected = selectedTags.includes(tag.name);
+                                const isDisabled = !isSelected && maxSelections && selectedTags.length >= maxSelections;
+                                return (
+                                    <button
+                                        key={tag.id}
+                                        type="button"
+                                        onClick={() => !isDisabled && toggleTag(tag.name)}
+                                        disabled={isDisabled as boolean}
+                                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${isSelected
+                                            ? 'bg-brand-600 text-white border-brand-600'
+                                            : isDisabled
+                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400 hover:bg-brand-50'
+                                            }`}
+                                    >
+                                        {isSelected && <i className="fa-solid fa-check mr-1"></i>}
+                                        {tag.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     )}
                 </div>
             )}

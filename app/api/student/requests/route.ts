@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
                 sp.user_id as supervisor_id,
                 u.name as supervisor_name,
                 u.email as supervisor_email,
-                sp.specialization,
                 sp.department
             FROM booking_requests br
             JOIN supervisor_profiles sp ON br.supervisor_id = sp.id

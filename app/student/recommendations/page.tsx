@@ -10,9 +10,10 @@ import { useToast } from '@/app/context/ToastContext';
 
 interface RecommendationItem {
     supervisor: SupervisorProfile;
-    matchedKeywords: string[];
+    matchedTags: string[];
     matchCount: number;
     isFullMatch: boolean;
+    score: number;
 }
 
 type SortOption = 'match_count' | 'experience' | 'availability';
@@ -21,7 +22,7 @@ export default function RecommendationsPage() {
     const router = useRouter();
     const { addToast } = useToast();
     const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
-    const [studentKeywords, setStudentKeywords] = useState<string[]>([]);
+    const [studentTags, setStudentTags] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState<SortOption>('match_count');
     const [fullMatchCount, setFullMatchCount] = useState(0);
     const [partialMatchCount, setPartialMatchCount] = useState(0);
@@ -44,7 +45,7 @@ export default function RecommendationsPage() {
             }
 
             setRecommendations(response.recommendations);
-            setStudentKeywords(response.studentKeywords || []);
+            setStudentTags(response.studentTags || []);
             setFullMatchCount(response.fullMatchCount || 0);
             setPartialMatchCount(response.partialMatchCount || 0);
         } catch (err) {
@@ -85,11 +86,11 @@ export default function RecommendationsPage() {
                     </div>
 
                     {/* Keywords Display */}
-                    {studentKeywords.length > 0 && (
+                    {studentTags.length > 0 && (
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
                             <p className="text-sm text-gray-600 mb-2">Your project keywords:</p>
                             <div className="flex flex-wrap gap-2">
-                                {studentKeywords.map((keyword, index) => (
+                                {studentTags.map((keyword, index) => (
                                     <span
                                         key={index}
                                         className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full"

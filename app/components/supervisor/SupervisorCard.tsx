@@ -31,7 +31,7 @@ export default function SupervisorCard({
                 {supervisor.user?.name}
               </h3>
               <p className="text-sm text-blue-600 font-medium">
-                {supervisor.specialization}
+                {supervisor.department || 'No department'}
               </p>
             </div>
           </div>
@@ -69,13 +69,12 @@ export default function SupervisorCard({
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition ${
-                slotPercentage < 80
+              className={`h-2 rounded-full transition ${slotPercentage < 80
                   ? 'bg-green-500'
                   : slotPercentage < 100
                     ? 'bg-yellow-500'
                     : 'bg-red-500'
-              }`}
+                }`}
               style={{ width: `${Math.min(slotPercentage, 100)}%` }}
             />
           </div>

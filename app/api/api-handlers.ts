@@ -97,7 +97,7 @@ const parseTags = (tagsData: any): string[] => {
 export async function registerUser(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, role, department, registrationNo, researchInterests, preferredFields, specialization, tags, bio, maxSlots } = body;
+    const { email, password, name, role, department, registrationNo, researchInterests, preferredFields, tags, bio, maxSlots } = body;
 
     // Validation
     if (!email || !password || !name || !role) {
@@ -115,9 +115,9 @@ export async function registerUser(request: NextRequest) {
       );
     }
 
-    if (role === 'SUPERVISOR' && (!department || !specialization || !tags || !bio || !maxSlots)) {
+    if (role === 'SUPERVISOR' && (!department || !tags || !bio || !maxSlots)) {
       return NextResponse.json(
-        { error: 'Department, specialization, tags, bio, and max slots are required for supervisors' },
+        { error: 'Department, tags, bio, and max slots are required for supervisors' },
         { status: 400 }
       );
     }
@@ -179,8 +179,8 @@ export async function registerUser(request: NextRequest) {
     } else if (role === 'SUPERVISOR') {
       const supervisorProfileId = generateId();
       await query(
-        'INSERT INTO supervisor_profiles (id, user_id, department, specialization, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [supervisorProfileId, userId, department, specialization, JSON.stringify(tags), bio, maxSlots, 0]
+        'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [supervisorProfileId, userId, department, JSON.stringify(tags), bio, maxSlots, 0]
       );
     }
 
@@ -286,7 +286,6 @@ export async function getAllSupervisors(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const specialization = url.searchParams.get('specialization');
     const available = url.searchParams.get('available');
 
     let sql = `
@@ -302,13 +301,10 @@ export async function getAllSupervisors(request: NextRequest) {
     `;
     const params: any[] = [];
 
-    // Filter by specialization
-    if (specialization) {
-      sql += ' AND sp.specialization LIKE ?';
-      params.push(`%${specialization}%`);
-    }
-
     // Filter by availability
+    if (available === 'true') {
+      sql += ' AND sp.current_slots < sp.max_slots';
+    }
     if (available === 'true') {
       sql += ' AND sp.current_slots < sp.max_slots';
     }
@@ -318,7 +314,7 @@ export async function getAllSupervisors(request: NextRequest) {
     const supervisors = rows.map(row => ({
       id: row.id,
       userId: row.user_id,
-      specialization: row.specialization,
+      department: row.department,
       tags: parseTags(row.tags),
       bio: row.bio,
       maxSlots: row.max_slots,
@@ -372,7 +368,7 @@ export async function getSupervisorById(id: string) {
     const supervisor = {
       id: row.id,
       userId: row.user_id,
-      specialization: row.specialization,
+      department: row.department,
       tags: parseTags(row.tags),
       bio: row.bio,
       maxSlots: row.max_slots,
@@ -407,10 +403,10 @@ export async function createSupervisorProfile(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { specialization, tags, bio, maxSlots } = body;
+    const { tags, bio, maxSlots } = body;
 
     // Validation
-    if (!specialization || !tags || !bio || !maxSlots) {
+    if (!tags || !bio || !maxSlots) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -432,14 +428,13 @@ export async function createSupervisorProfile(request: NextRequest) {
 
     const profileId = generateId();
     await query(
-      'INSERT INTO supervisor_profiles (id, user_id, specialization, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [profileId, auth.userId, specialization, JSON.stringify(tags), bio, maxSlots, 0]
+      'INSERT INTO supervisor_profiles (id, user_id, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?)',
+      [profileId, auth.userId, JSON.stringify(tags), bio, maxSlots, 0]
     );
 
     const profile = {
       id: profileId,
       userId: auth.userId,
-      specialization,
       tags,
       bio,
       maxSlots: parseInt(maxSlots),
@@ -474,10 +469,10 @@ export async function submitProjectIdea(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, keywords, attachments } = body;
+    const { title, description, tags, attachments } = body;
 
     // Validation
-    if (!title || !description || !category) {
+    if (!title || !description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -487,6 +482,13 @@ export async function submitProjectIdea(request: NextRequest) {
     if (description.length < 200 || description.length > 1000) {
       return NextResponse.json(
         { error: 'Description must be between 200 and 1000 characters' },
+        { status: 400 }
+      );
+    }
+
+    if (!tags || tags.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one tag is required' },
         { status: 400 }
       );
     }
@@ -514,12 +516,11 @@ export async function submitProjectIdea(request: NextRequest) {
     if (existingIdea) {
       // Update existing idea instead of creating a new one
       await query(
-        'UPDATE project_ideas SET title = ?, description = ?, category = ?, keywords = ?, attachments = ?, created_at = NOW() WHERE id = ?',
+        'UPDATE project_ideas SET title = ?, description = ?, tags = ?, attachments = ?, created_at = NOW() WHERE id = ?',
         [
           title,
           description,
-          category,
-          JSON.stringify(keywords || []),
+          JSON.stringify(tags || []),
           JSON.stringify(attachments || []),
           existingIdea.id
         ]
@@ -530,8 +531,7 @@ export async function submitProjectIdea(request: NextRequest) {
         studentId: auth.userId,
         title,
         description,
-        category,
-        keywords: keywords || [],
+        tags: tags || [],
         attachments: attachments || [],
         createdAt: new Date(),
       };
@@ -545,14 +545,13 @@ export async function submitProjectIdea(request: NextRequest) {
     // Create new idea if none exists
     const ideaId = generateId();
     await query(
-      'INSERT INTO project_ideas (id, student_id, title, description, category, keywords, attachments) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO project_ideas (id, student_id, title, description, tags, attachments) VALUES (?, ?, ?, ?, ?, ?)',
       [
         ideaId,
         auth.userId,
         title,
         description,
-        category,
-        JSON.stringify(keywords || []),
+        JSON.stringify(tags || []),
         JSON.stringify(attachments || [])
       ]
     );
@@ -562,8 +561,7 @@ export async function submitProjectIdea(request: NextRequest) {
       studentId: auth.userId,
       title,
       description,
-      category,
-      keywords: keywords || [],
+      tags: tags || [],
       attachments: attachments || [],
       createdAt: new Date(),
     };
@@ -609,8 +607,7 @@ export async function getStudentProjectIdea(request: NextRequest) {
       studentId: studentIdea.student_id,
       title: studentIdea.title,
       description: studentIdea.description,
-      category: studentIdea.category,
-      keywords: parseTags(studentIdea.keywords),
+      tags: parseTags(studentIdea.tags),
       attachments: parseTags(studentIdea.attachments),
       createdAt: studentIdea.created_at,
     };
@@ -654,8 +651,8 @@ export async function getRecommendationMatches(request: NextRequest) {
       });
     }
 
-    const keywords: string[] = JSON.parse(studentIdea.keywords);
-    const normalizedKeywords = keywords.map(k => k.toLowerCase().trim());
+    const projectTags: string[] = parseTags(studentIdea.tags);
+    const normalizedProjectTags = projectTags.map(k => k.toLowerCase().trim());
 
     // Get available supervisors
     const supervisors = await query<any[]>(
@@ -677,26 +674,28 @@ export async function getRecommendationMatches(request: NextRequest) {
       const tags = parseTags(supervisor.tags);
       const normalizedTags = tags.map((t: string) => t.toLowerCase().trim());
 
-      // Count matching keywords
-      const matchedKeywords = normalizedKeywords.filter(keyword =>
-        normalizedTags.some((tag: string) =>
-          tag === keyword || // Exact match
-          tag.includes(keyword) || // Tag contains keyword
-          keyword.includes(tag) // Keyword contains tag
+      // Count matching tags
+      const matchedTags = normalizedProjectTags.filter(projectTag =>
+        normalizedTags.some((supTag: string) =>
+          supTag === projectTag || // Exact match
+          supTag.includes(projectTag) || // Tag contains project tag
+          projectTag.includes(supTag) // Project tag contains supervisor tag
         )
       );
 
-      const matchCount = matchedKeywords.length;
-      const isFullMatch = matchCount === normalizedKeywords.length && normalizedKeywords.length > 0;
+      const matchCount = matchedTags.length;
+      const isFullMatch = matchCount === normalizedProjectTags.length && normalizedProjectTags.length > 0;
       const availableSlots = supervisor.max_slots - supervisor.current_slots;
       const yearsOfExperience = supervisor.years_of_experience || 0;
+
+      // Calculate score: (Tag Overlap × 10) + (Years of Experience × 2)
+      const score = (matchCount * 10) + (yearsOfExperience * 2);
 
       return {
         supervisor: {
           id: supervisor.id,
           userId: supervisor.user_id,
           department: supervisor.department,
-          specialization: supervisor.specialization,
           tags,
           bio: supervisor.bio,
           yearsOfExperience,
@@ -710,11 +709,12 @@ export async function getRecommendationMatches(request: NextRequest) {
             createdAt: new Date(),
           },
         },
-        matchedKeywords,
+        matchedTags,
         matchCount,
         isFullMatch,
         availableSlots,
         yearsOfExperience,
+        score,
       };
     });
 
@@ -757,20 +757,20 @@ export async function getRecommendationMatches(request: NextRequest) {
     return NextResponse.json({
       recommendations: recommendations.map(r => ({
         supervisor: r.supervisor,
-        matchedKeywords: r.matchedKeywords,
+        matchedTags: r.matchedTags,
         matchCount: r.matchCount,
         isFullMatch: r.isFullMatch,
+        score: r.score,
       })),
       projectIdea: {
         id: studentIdea.id,
         studentId: studentIdea.student_id,
         title: studentIdea.title,
         description: studentIdea.description,
-        category: studentIdea.category,
-        keywords,
+        tags: projectTags,
         createdAt: studentIdea.created_at,
       },
-      studentKeywords: keywords,
+      studentTags: projectTags,
       sortedBy: sortBy,
       totalMatches: recommendations.length,
       fullMatchCount: groupA.length,
@@ -1242,7 +1242,7 @@ export async function getMeetings(request: NextRequest) {
         s.name as student_name,
         s.email as student_email,
         sp.id as supervisor_profile_id,
-        sp.specialization,
+        sp.department,
         su.id as supervisor_user_id,
         su.name as supervisor_name,
         su.email as supervisor_email
@@ -1278,7 +1278,7 @@ export async function getMeetings(request: NextRequest) {
       },
       supervisor: {
         id: row.supervisor_profile_id,
-        specialization: row.specialization,
+        department: row.department,
         user: {
           id: row.supervisor_user_id,
           name: row.supervisor_name,
@@ -1400,7 +1400,7 @@ export async function getStudentAssignment(request: NextRequest) {
       SELECT 
         a.*,
         sp.id as supervisor_profile_id,
-        sp.specialization,
+        sp.department,
         sp.tags,
         sp.bio,
         sp.max_slots,
@@ -1433,7 +1433,7 @@ export async function getStudentAssignment(request: NextRequest) {
       supervisor: {
         id: assignment.supervisor_profile_id,
         userId: assignment.supervisor_user_id,
-        specialization: assignment.specialization,
+        department: assignment.department,
         tags: parseTags(assignment.tags),
         bio: assignment.bio,
         maxSlots: assignment.max_slots,
@@ -1555,7 +1555,7 @@ export async function getSupervisorStats(request: NextRequest) {
         maxSlots: profile.max_slots,
         currentSlots: profile.current_slots,
         availableSlots: profile.max_slots - profile.current_slots,
-        specialization: profile.specialization,
+        department: profile.department,
         tags: parseTags(profile.tags),
       },
     });

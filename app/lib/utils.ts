@@ -44,64 +44,33 @@ export async function fetcher<T>(
   return res.json();
 }
 
-export const SPECIALIZATIONS = [
-  'AI/ML',
-  'Web Development',
-  'Mobile Development',
-  'Data Science',
-  'Cloud Computing',
-  'Cybersecurity',
-  'DevOps',
-  'Database Design',
-  'Software Architecture',
-  'UI/UX Design',
-  'Blockchain',
-  'IoT',
-  'Computer Vision',
-  'Natural Language Processing',
-];
-
-export const PROJECT_CATEGORIES = [
-  'AI/ML',
-  'Web Application',
-  'Mobile App',
-  'Data Analytics',
-  'Cloud Platform',
-  'Security Tool',
-  'DevOps Tool',
-  'Database System',
-  'Game Development',
-  'Computer Vision',
-  'NLP Application',
-  'IoT System',
-];
+// Legacy constants removed - now using tags from database
 
 export function calculateRecommendationScore(
-  idea: { category: string; keywords: string[] },
-  supervisor: { specialization: string; tags: string[] }
+  idea: { tags: string[] },
+  supervisor: { tags: string[]; yearsOfExperience?: number }
 ): { score: number; matchedTags: string[] } {
-  let score = 0;
   const matchedTags: string[] = [];
 
-  // Category match: +5
-  if (idea.category.toLowerCase() === supervisor.specialization.toLowerCase()) {
-    score += 5;
-  }
-
-  // Keyword-tag matches: +2 each
-  idea.keywords.forEach((keyword) => {
-    supervisor.tags.forEach((tag) => {
+  // Tag matches: +10 each
+  idea.tags.forEach((ideaTag) => {
+    supervisor.tags.forEach((supTag) => {
       if (
-        keyword.toLowerCase().includes(tag.toLowerCase()) ||
-        tag.toLowerCase().includes(keyword.toLowerCase())
+        ideaTag.toLowerCase() === supTag.toLowerCase() ||
+        ideaTag.toLowerCase().includes(supTag.toLowerCase()) ||
+        supTag.toLowerCase().includes(ideaTag.toLowerCase())
       ) {
-        if (!matchedTags.includes(tag)) {
-          matchedTags.push(tag);
-          score += 2;
+        if (!matchedTags.includes(supTag)) {
+          matchedTags.push(supTag);
         }
       }
     });
   });
+
+  // Score formula: (tag overlap * 10) + (years of experience * 2)
+  const tagScore = matchedTags.length * 10;
+  const experienceScore = (supervisor.yearsOfExperience || 0) * 2;
+  const score = tagScore + experienceScore;
 
   return { score, matchedTags };
 }
@@ -139,17 +108,17 @@ export function getUserDashboardUrl(role: string): string {
  */
 export function getLoggedInUser(): { role: string; id: string; name: string; email: string } | null {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const authToken = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
-    
+
     if (authToken && userStr) {
       return JSON.parse(userStr);
     }
   } catch (error) {
     console.error('Error getting logged in user:', error);
   }
-  
+
   return null;
 }

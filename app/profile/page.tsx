@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/context/ToastContext';
-import { configAPI, Specialization, Tag } from '@/app/lib/api-client';
+import { configAPI, Tag } from '@/app/lib/api-client';
 
 interface UserProfile {
     id: string;
@@ -15,7 +15,6 @@ interface UserProfile {
 
 interface SupervisorProfile {
     department?: string;
-    specialization?: string;
     tags?: string[];
     bio?: string;
     years_of_experience?: number;
@@ -33,7 +32,6 @@ export default function ProfilePage() {
     const { addToast } = useToast();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [profile, setProfile] = useState<SupervisorProfile | StudentProfile | null>(null);
-    const [specializations, setSpecializations] = useState<Specialization[]>([]);
     const [availableTags, setAvailableTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -48,7 +46,6 @@ export default function ProfilePage() {
         registrationNo: '',
         department: '',
         // Supervisor fields
-        specialization: '',
         tags: [] as string[],
         bio: '',
         yearsOfExperience: 0,
@@ -64,12 +61,11 @@ export default function ProfilePage() {
             setLoading(true);
             const token = localStorage.getItem('authToken');
 
-            // Fetch profile, specializations and tags in parallel
-            const [profileRes, specsRes, tagsRes] = await Promise.all([
+            // Fetch profile and tags in parallel
+            const [profileRes, tagsRes] = await Promise.all([
                 fetch('/api/user/profile', {
                     headers: { Authorization: `Bearer ${token}` },
                 }),
-                configAPI.getSpecializations(),
                 configAPI.getTags(),
             ]);
 
@@ -80,7 +76,6 @@ export default function ProfilePage() {
             const data = await profileRes.json();
             setUser(data.user);
             setProfile(data.profile);
-            setSpecializations(specsRes.specializations);
             setAvailableTags(tagsRes.tags);
 
             // Initialize form data
@@ -92,7 +87,6 @@ export default function ProfilePage() {
                 registrationNo: data.profile?.registration_no || '',
                 department: data.profile?.department || '',
                 // Supervisor fields
-                specialization: data.profile?.specialization || '',
                 tags: data.profile?.tags || [],
                 bio: data.profile?.bio || '',
                 yearsOfExperience: data.profile?.years_of_experience || 0,
@@ -140,7 +134,6 @@ export default function ProfilePage() {
                 };
             } else if (user?.role === 'SUPERVISOR') {
                 payload.profile = {
-                    specialization: formData.specialization,
                     department: formData.department,
                     tags: formData.tags,
                     bio: formData.bio,
@@ -306,20 +299,6 @@ export default function ProfilePage() {
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Specialization</label>
-                                        <select
-                                            name="specialization"
-                                            value={formData.specialization}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                                        >
-                                            <option value="">Select Specialization</option>
-                                            {specializations.map(spec => (
-                                                <option key={spec.id} value={spec.name}>{spec.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
                                         <input
                                             type="text"
@@ -373,45 +352,33 @@ export default function ProfilePage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Tags / Research Interests</label>
                                     <p className="text-sm text-gray-500 mb-3">Select tags that match your expertise:</p>
 
-                                    {/* Group tags by category */}
-                                    {Object.entries(
-                                        availableTags.reduce((acc, tag) => {
-                                            const cat = tag.category || 'Other';
-                                            if (!acc[cat]) acc[cat] = [];
-                                            acc[cat].push(tag);
-                                            return acc;
-                                        }, {} as Record<string, Tag[]>)
-                                    ).map(([category, tags]) => (
-                                        <div key={category} className="mb-3">
-                                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category}</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {tags.map((tag) => (
-                                                    <label
-                                                        key={tag.id}
-                                                        className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
-                                                            ? 'bg-brand-600 text-white border-brand-600'
-                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
-                                                            }`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            className="sr-only"
-                                                            checked={formData.tags.includes(tag.name)}
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag.name] }));
-                                                                } else {
-                                                                    setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag.name) }));
-                                                                }
-                                                            }}
-                                                        />
-                                                        {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
-                                                        {tag.name}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
+                                    {/* Flat list of tags */}
+                                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                                        {availableTags.map((tag) => (
+                                            <label
+                                                key={tag.id}
+                                                className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
+                                                    ? 'bg-brand-600 text-white border-brand-600'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only"
+                                                    checked={formData.tags.includes(tag.name)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag.name] }));
+                                                        } else {
+                                                            setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag.name) }));
+                                                        }
+                                                    }}
+                                                />
+                                                {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
+                                                {tag.name}
+                                            </label>
+                                        ))}
+                                    </div>
 
                                     {formData.tags.length > 0 && (
                                         <p className="text-sm text-brand-600 mt-2">

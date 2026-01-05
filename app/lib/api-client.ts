@@ -124,7 +124,6 @@ export interface SupervisorProfile {
   id: string;
   userId: string;
   department?: string;
-  specialization: string;
   tags: string[];
   bio: string;
   yearsOfExperience: number;
@@ -139,11 +138,9 @@ export interface SupervisorProfile {
 
 export const supervisorAPI = {
   getAll: async (params?: {
-    specialization?: string;
     available?: boolean;
   }): Promise<{ supervisors: SupervisorProfile[]; total: number }> => {
     const queryParams = new URLSearchParams();
-    if (params?.specialization) queryParams.set('specialization', params.specialization);
     if (params?.available !== undefined) queryParams.set('available', params.available.toString());
 
     const query = queryParams.toString();
@@ -155,7 +152,6 @@ export const supervisorAPI = {
   },
 
   createProfile: async (data: {
-    specialization: string;
     tags: string[];
     bio: string;
     maxSlots: number;
@@ -191,7 +187,7 @@ export const supervisorAPI = {
       maxSlots: number;
       currentSlots: number;
       availableSlots: number;
-      specialization: string;
+      department: string;
       tags: string[];
     };
   }> => {
@@ -217,8 +213,7 @@ export interface ProjectIdea {
   studentId: string;
   title: string;
   description: string;
-  category: string;
-  keywords: string[];
+  tags: string[];
   attachments: string[];
   createdAt: string;
 }
@@ -234,8 +229,7 @@ export const studentAPI = {
   submitIdea: async (data: {
     title: string;
     description: string;
-    category: string;
-    keywords: string[];
+    tags: string[];
     attachments?: string[];
   }): Promise<{ message: string; idea: ProjectIdea }> => {
     return apiRequest('/student/idea', {
@@ -247,12 +241,13 @@ export const studentAPI = {
   getMatches: async (sortBy: 'match_count' | 'experience' | 'availability' = 'match_count'): Promise<{
     recommendations: Array<{
       supervisor: SupervisorProfile;
-      matchedKeywords: string[];
+      matchedTags: string[];
       matchCount: number;
       isFullMatch: boolean;
+      score: number;
     }>;
     projectIdea: ProjectIdea;
-    studentKeywords: string[];
+    studentTags: string[];
     sortedBy: string;
     totalMatches: number;
     fullMatchCount: number;
@@ -287,7 +282,6 @@ export const studentAPI = {
       supervisor_id: string;
       supervisor_name: string;
       supervisor_email: string;
-      specialization: string;
       department: string;
     }>;
   }> => {
@@ -322,36 +316,15 @@ export const assignmentAPI = {
 };
 
 // ============================================
-// CONFIG API (Specializations & Categories)
+// CONFIG API (Tags)
 // ============================================
-
-export interface Specialization {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-export interface ProjectCategory {
-  id: string;
-  name: string;
-  description?: string;
-}
 
 export interface Tag {
   id: string;
   name: string;
-  category?: string;
 }
 
 export const configAPI = {
-  getSpecializations: async (): Promise<{ specializations: Specialization[] }> => {
-    return apiRequest('/specializations');
-  },
-
-  getCategories: async (): Promise<{ categories: ProjectCategory[] }> => {
-    return apiRequest('/categories');
-  },
-
   getTags: async (): Promise<{ tags: Tag[] }> => {
     return apiRequest('/tags');
   },
