@@ -49,8 +49,11 @@ export async function POST(request: NextRequest) {
         const tagNames = activeTags.map(t => t.name);
         const tagCategories = [...new Set(activeTags.map(t => t.category).filter(Boolean))];
 
-        // Build prompt for Gemini
-        const prompt = `You are an academic project classification AI. Analyze the following project description and suggest relevant tags.
+        // Build prompt for Gemini - different prompts based on whether tags exist
+        const hasExistingTags = tagNames.length > 0;
+
+        const prompt = hasExistingTags
+            ? `You are an academic project classification AI. Analyze the following project description and suggest relevant tags.
 
 EXISTING TAGS (select 3-8 most relevant):
 ${tagNames.join(', ')}
@@ -65,6 +68,17 @@ INSTRUCTIONS:
 1. Select relevant tags from the EXISTING TAGS list.
 2. ONLY if the project has key aspects NOT covered by existing tags, suggest up to 2 NEW tags.
 3. For new tags, use one of the EXISTING CATEGORIES if possible, or suggest a sensible new one.
+4. STRICTLY follow the JSON schema provided.`
+            : `You are an academic project classification AI. Analyze the following project description and suggest relevant tags.
+
+PROJECT DESCRIPTION:
+${description}
+
+INSTRUCTIONS:
+1. Since there are no existing tags, suggest 5-8 NEW tags that best describe this project.
+2. For each tag, assign an appropriate category from common academic/technical domains like:
+   - "Artificial Intelligence", "Software Development", "Data", "Security", "Cloud & DevOps", "Hardware & IoT", "Domain", "Other"
+3. Tags should be concise (1-3 words) and descriptive.
 4. STRICTLY follow the JSON schema provided.`;
 
         // Call Gemini API with Structured Output configuration
@@ -154,8 +168,9 @@ INSTRUCTIONS:
 
         // Create new tags if suggested
         const createdTags: string[] = [];
+        const maxNewTags = hasExistingTags ? 2 : 8; // Allow more new tags when bootstrapping
         if (suggestions.newTags && suggestions.newTags.length > 0) {
-            for (const newTag of suggestions.newTags.slice(0, 2)) { // Max 2 new tags limit
+            for (const newTag of suggestions.newTags.slice(0, maxNewTags)) {
                 const tagName = newTag.name.trim();
 
                 // Check if tag already exists in DB (case-insensitive) just in case
