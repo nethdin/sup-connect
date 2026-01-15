@@ -2,12 +2,12 @@
 function validateServerEnv(key: string, defaultValue?: string): string {
     // Skip validation on client-side
     if (typeof window !== 'undefined') {
-        return defaultValue || '';
+        return defaultValue ?? '';
     }
 
-    const value = process.env[key] || defaultValue;
+    const value = process.env[key] ?? defaultValue;
 
-    if (!value) {
+    if (value === undefined) {
         throw new Error(`Missing required environment variable: ${key}`);
     }
 
@@ -22,11 +22,15 @@ function getEnv(key: string, defaultValue: string): string {
 // Server-only config (database, API keys) - only validated on server
 export const serverConfig = {
     db: {
-        url: validateServerEnv('DATABASE_URL'),
+        host: validateServerEnv('DB_HOST', 'localhost'),
+        port: parseInt(validateServerEnv('DB_PORT', '3306'), 10),
+        user: validateServerEnv('DB_USERNAME', 'root'),
+        password: validateServerEnv('DB_PASSWORD', ''),
+        database: validateServerEnv('DB_DATABASE', 'supconnect'),
     },
     ai: {
         geminiApiKey: validateServerEnv('GEMINI_API_KEY'),
-        geminiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+        geminiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
     },
 } as const;
 

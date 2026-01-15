@@ -1,8 +1,10 @@
 -- ============================================
 -- DATABASE SCHEMA FOR SUP-CONNECT
 -- ============================================
--- Last Updated: 2026-01-02
+-- Last Updated: 2026-01-15
 -- Changes:
+--   - Added `tags` table for centralized tag management
+--   - Added `category` and `keywords` columns to project_ideas table
 --   - Removed unused tables: availability_slots, progress_updates, notifications
 --   - Added years_of_experience to supervisor_profiles
 --   - Added SUPER_ADMIN role
@@ -68,6 +70,24 @@ CREATE TABLE `supervisor_profiles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- TAGS TABLE (Centralized tag management)
+-- ============================================
+
+CREATE TABLE `tags` (
+  `id` VARCHAR(36) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(100) DEFAULT 'Other',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `sort_order` INT NOT NULL DEFAULT 100,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_name` (`name`),
+  KEY `idx_category` (`category`),
+  KEY `idx_active` (`is_active`),
+  KEY `idx_sort` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- PROJECT & MATCHING TABLES
 -- ============================================
 
@@ -76,12 +96,15 @@ CREATE TABLE `project_ideas` (
   `student_id` VARCHAR(36) NOT NULL,
   `title` VARCHAR(500) NOT NULL,
   `description` TEXT NOT NULL,
+  `category` VARCHAR(255) DEFAULT NULL,
+  `keywords` JSON DEFAULT NULL,
   `tags` JSON NOT NULL,
   `attachments` JSON DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_student` (`student_id`),
+  KEY `idx_category` (`category`),
   CONSTRAINT `fk_idea_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

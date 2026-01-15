@@ -1,32 +1,13 @@
 import mysql from 'mysql2/promise';
 import { config } from '@/app/lib/config';
 
-// Parse DATABASE_URL environment variable
-// Format: mysql://USER:PASSWORD@HOST:PORT/DATABASE
-function parseDatabaseUrl(url: string) {
-  const regex = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/;
-  const match = url.match(regex);
-
-  if (!match) {
-    throw new Error('Invalid DATABASE_URL format. Expected: mysql://USER:PASSWORD@HOST:PORT/DATABASE');
-  }
-
-  return {
-    user: match[1],
-    password: match[2],
-    host: match[3],
-    port: parseInt(match[4], 10),
-    database: match[5],
-  };
-}
-
-// Database connection configuration from environment
-const databaseUrl = config.db.url;
-
-const parsedConfig = parseDatabaseUrl(databaseUrl);
-
+// Database connection configuration from config (single source of truth)
 const dbConfig = {
-  ...parsedConfig,
+  host: config.db.host,
+  port: config.db.port,
+  user: config.db.user,
+  password: config.db.password,
+  database: config.db.database,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
