@@ -90,6 +90,48 @@ const parseTags = (tagsData: any): string[] => {
   return [];
 };
 
+// Helper function to resolve tag IDs to tag names
+// Used when returning data to frontend
+async function resolveTagIds(tagIds: string[]): Promise<string[]> {
+  if (!tagIds || tagIds.length === 0) return [];
+
+  // Check if these look like UUIDs (tag IDs) or plain names
+  const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+  // If they don't look like UUIDs, assume they're already names (backward compatibility)
+  if (!tagIds.some(isUuid)) {
+    return tagIds;
+  }
+
+  const placeholders = tagIds.map(() => '?').join(',');
+  const rows = await query<{ id: string; name: string }[]>(
+    `SELECT id, name FROM tags WHERE id IN (${placeholders})`,
+    tagIds
+  );
+
+  // Preserve order based on input tagIds
+  const idToName = new Map(rows.map(r => [r.id, r.name]));
+  return tagIds.map(id => idToName.get(id) || id).filter(name => name);
+}
+
+// Helper function to convert tag names to tag IDs
+// Used when storing data to database
+export async function getTagIdsByNames(tagNames: string[]): Promise<string[]> {
+  if (!tagNames || tagNames.length === 0) return [];
+
+  const placeholders = tagNames.map(() => 'LOWER(?) = LOWER(name)').join(' OR ');
+  const rows = await query<{ id: string; name: string }[]>(
+    `SELECT id, name FROM tags WHERE ${placeholders}`,
+    tagNames
+  );
+
+  // Return IDs in order of input names, skip any not found
+  const nameToId = new Map(rows.map(r => [r.name.toLowerCase(), r.id]));
+  return tagNames
+    .map(name => nameToId.get(name.toLowerCase()))
+    .filter((id): id is string => id !== undefined);
+}
+
 // ============================================
 // AUTH ENDPOINTS
 // ============================================
@@ -178,9 +220,11 @@ export async function registerUser(request: NextRequest) {
       );
     } else if (role === 'SUPERVISOR') {
       const supervisorProfileId = generateId();
+      // Convert tag names to tag IDs for storage
+      const tagIds = await getTagIdsByNames(tags || []);
       await query(
         'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [supervisorProfileId, userId, department, JSON.stringify(tags), bio, maxSlots, 0]
+        [supervisorProfileId, userId, department, JSON.stringify(tagIds), bio, maxSlots, 0]
       );
     }
 
@@ -311,21 +355,27 @@ export async function getAllSupervisors(request: NextRequest) {
 
     const rows = await query<any[]>(sql, params);
 
-    const supervisors = rows.map(row => ({
-      id: row.id,
-      userId: row.user_id,
-      department: row.department,
-      tags: parseTags(row.tags),
-      bio: row.bio,
-      maxSlots: row.max_slots,
-      currentSlots: row.current_slots,
-      profilePicture: row.profile_picture,
-      user: {
-        id: row.user_id,
-        email: row.user_email,
-        name: row.user_name,
-        role: row.user_role,
-      },
+    // Resolve tag IDs to names for each supervisor
+    const supervisors = await Promise.all(rows.map(async row => {
+      const tagIds = parseTags(row.tags);
+      const resolvedTags = await resolveTagIds(tagIds);
+      return {
+        id: row.id,
+        userId: row.user_id,
+        department: row.department,
+        tags: resolvedTags,
+        bio: row.bio,
+        yearsOfExperience: row.years_of_experience || 0,
+        maxSlots: row.max_slots,
+        currentSlots: row.current_slots,
+        profilePicture: row.profile_picture,
+        user: {
+          id: row.user_id,
+          email: row.user_email,
+          name: row.user_name,
+          role: row.user_role,
+        },
+      };
     }));
 
     return NextResponse.json({
@@ -365,12 +415,17 @@ export async function getSupervisorById(id: string) {
       );
     }
 
+    // Resolve tag IDs to names
+    const tagIds = parseTags(row.tags);
+    const resolvedTags = await resolveTagIds(tagIds);
+
     const supervisor = {
       id: row.id,
       userId: row.user_id,
       department: row.department,
-      tags: parseTags(row.tags),
+      tags: resolvedTags,
       bio: row.bio,
+      yearsOfExperience: row.years_of_experience || 0,
       maxSlots: row.max_slots,
       currentSlots: row.current_slots,
       profilePicture: row.profile_picture,
@@ -427,15 +482,19 @@ export async function createSupervisorProfile(request: NextRequest) {
     }
 
     const profileId = generateId();
+    // Convert tag names to tag IDs for storage
+    const tagIds = await getTagIdsByNames(tags || []);
     await query(
       'INSERT INTO supervisor_profiles (id, user_id, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?)',
-      [profileId, auth.userId, JSON.stringify(tags), bio, maxSlots, 0]
+      [profileId, auth.userId, JSON.stringify(tagIds), bio, maxSlots, 0]
     );
 
+    // Return with resolved tag names for frontend
+    const resolvedTags = await resolveTagIds(tagIds);
     const profile = {
       id: profileId,
       userId: auth.userId,
-      tags,
+      tags: resolvedTags,
       bio,
       maxSlots: parseInt(maxSlots),
       currentSlots: 0,
@@ -514,13 +573,15 @@ export async function submitProjectIdea(request: NextRequest) {
     );
 
     if (existingIdea) {
+      // Convert tag names to IDs for storage
+      const tagIds = await getTagIdsByNames(tags || []);
       // Update existing idea instead of creating a new one
       await query(
         'UPDATE project_ideas SET title = ?, description = ?, tags = ?, attachments = ?, created_at = NOW() WHERE id = ?',
         [
           title,
           description,
-          JSON.stringify(tags || []),
+          JSON.stringify(tagIds),
           JSON.stringify(attachments || []),
           existingIdea.id
         ]
@@ -531,7 +592,7 @@ export async function submitProjectIdea(request: NextRequest) {
         studentId: auth.userId,
         title,
         description,
-        tags: tags || [],
+        tags: tags || [], // Return original names for frontend
         attachments: attachments || [],
         createdAt: new Date(),
       };
@@ -542,6 +603,9 @@ export async function submitProjectIdea(request: NextRequest) {
       }, { status: 200 });
     }
 
+    // Convert tag names to IDs for storage
+    const tagIds = await getTagIdsByNames(tags || []);
+
     // Create new idea if none exists
     const ideaId = generateId();
     await query(
@@ -551,7 +615,7 @@ export async function submitProjectIdea(request: NextRequest) {
         auth.userId,
         title,
         description,
-        JSON.stringify(tags || []),
+        JSON.stringify(tagIds),
         JSON.stringify(attachments || [])
       ]
     );
@@ -561,7 +625,7 @@ export async function submitProjectIdea(request: NextRequest) {
       studentId: auth.userId,
       title,
       description,
-      tags: tags || [],
+      tags: tags || [], // Return original names for frontend
       attachments: attachments || [],
       createdAt: new Date(),
     };
@@ -602,12 +666,16 @@ export async function getStudentProjectIdea(request: NextRequest) {
       });
     }
 
+    // Resolve tag IDs to names
+    const tagIds = parseTags(studentIdea.tags);
+    const resolvedTags = await resolveTagIds(tagIds);
+
     const idea = {
       id: studentIdea.id,
       studentId: studentIdea.student_id,
       title: studentIdea.title,
       description: studentIdea.description,
-      tags: parseTags(studentIdea.tags),
+      tags: resolvedTags,
       attachments: parseTags(studentIdea.attachments),
       createdAt: studentIdea.created_at,
     };
@@ -651,7 +719,9 @@ export async function getRecommendationMatches(request: NextRequest) {
       });
     }
 
-    const projectTags: string[] = parseTags(studentIdea.tags);
+    // Resolve project tag IDs to names
+    const projectTagIds: string[] = parseTags(studentIdea.tags);
+    const projectTags = await resolveTagIds(projectTagIds);
     const normalizedProjectTags = projectTags.map(k => k.toLowerCase().trim());
 
     // Get available supervisors
@@ -670,8 +740,10 @@ export async function getRecommendationMatches(request: NextRequest) {
     );
 
     // Calculate matches using criteria-based approach
-    const matchedSupervisors = supervisors.map(supervisor => {
-      const tags = parseTags(supervisor.tags);
+    const matchedSupervisors = await Promise.all(supervisors.map(async supervisor => {
+      // Resolve supervisor tag IDs to names
+      const tagIds = parseTags(supervisor.tags);
+      const tags = await resolveTagIds(tagIds);
       const normalizedTags = tags.map((t: string) => t.toLowerCase().trim());
 
       // Count matching tags
@@ -696,7 +768,7 @@ export async function getRecommendationMatches(request: NextRequest) {
           id: supervisor.id,
           userId: supervisor.user_id,
           department: supervisor.department,
-          tags,
+          tags, // Already resolved to names
           bio: supervisor.bio,
           yearsOfExperience,
           maxSlots: supervisor.max_slots,
@@ -716,7 +788,7 @@ export async function getRecommendationMatches(request: NextRequest) {
         yearsOfExperience,
         score,
       };
-    });
+    }));
 
     // Filter: at least 1 match required
     const withMatches = matchedSupervisors.filter(s => s.matchCount > 0);
