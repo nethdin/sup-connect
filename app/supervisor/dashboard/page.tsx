@@ -213,6 +213,26 @@ export default function SupervisorDashboard() {
                   </Link>
                 </div>
               </div>
+
+              {/* Suggested Tags - Direct link to profile for managing tags */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">Suggested Tags</h3>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    New
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  New tags are available that match your expertise areas. Update your profile to improve student matching.
+                </p>
+                <Link
+                  href="/supervisor/profile"
+                  className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                >
+                  <i className="fa-solid fa-tags mr-2"></i>
+                  Manage My Tags
+                </Link>
+              </div>
             </div>
           </div>
         </div>
