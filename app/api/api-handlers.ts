@@ -1496,6 +1496,10 @@ export async function getStudentAssignment(request: NextRequest) {
       });
     }
 
+    // Resolve tag IDs to names
+    const tagIds = parseTags(assignment.tags);
+    const resolvedTags = await resolveTagIds(tagIds);
+
     const formattedAssignment = {
       id: assignment.id,
       studentId: assignment.student_id,
@@ -1506,7 +1510,7 @@ export async function getStudentAssignment(request: NextRequest) {
         id: assignment.supervisor_profile_id,
         userId: assignment.supervisor_user_id,
         department: assignment.department,
-        tags: parseTags(assignment.tags),
+        tags: resolvedTags,
         bio: assignment.bio,
         maxSlots: assignment.max_slots,
         currentSlots: assignment.current_slots,
@@ -1622,13 +1626,17 @@ export async function getSupervisorStats(request: NextRequest) {
       );
     }
 
+    // Resolve tag IDs to names
+    const tagIds = parseTags(profile.tags);
+    const resolvedTags = await resolveTagIds(tagIds);
+
     return NextResponse.json({
       stats: {
         maxSlots: profile.max_slots,
         currentSlots: profile.current_slots,
         availableSlots: profile.max_slots - profile.current_slots,
         department: profile.department,
-        tags: parseTags(profile.tags),
+        tags: resolvedTags,
       },
     });
   } catch (error) {
