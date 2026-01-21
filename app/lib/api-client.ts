@@ -202,6 +202,15 @@ export const supervisorAPI = {
       method: 'POST',
     });
   },
+
+  getSuggestedTags: async (): Promise<{
+    suggestedTags: { id: string; name: string; category: string }[];
+    recentTags?: { id: string; name: string; category: string }[];
+    currentTagCount: number;
+    categories?: string[];
+  }> => {
+    return apiRequest('/supervisor/suggested-tags');
+  },
 };
 
 // ============================================
