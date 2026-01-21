@@ -215,7 +215,19 @@ export default function ProjectIdeaForm({ onSubmit, initialData, isEditing = fal
             }
             setAiLoading(true);
             try {
-              const result = await configAPI.suggestTags(formData.description);
+              const result = await configAPI.suggestTags(formData.description) as any;
+
+              // Handle warning responses (API returned gracefully but had issues)
+              if (result.warning) {
+                addToast(result.warning, 'warning');
+                return;
+              }
+
+              if (result.suggestedTags.length === 0) {
+                addToast('AI could not suggest tags. Please select manually.', 'warning');
+                return;
+              }
+
               setFormData(prev => ({ ...prev, tags: result.suggestedTags }));
               if (result.newTagsCreated > 0) {
                 // Refresh tags list to include new ones
