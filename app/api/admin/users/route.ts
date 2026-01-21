@@ -90,9 +90,12 @@ export async function POST(request: NextRequest) {
             );
         } else if (role === 'SUPERVISOR') {
             const profileId = uuidv4();
+            // Convert tag names to IDs
+            const { getTagIdsByNames } = await import('@/app/api/api-handlers');
+            const tagIds = await getTagIdsByNames(tags || []);
             await query(
                 'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, years_of_experience, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [profileId, userId, department || null, JSON.stringify(tags), bio, yearsOfExperience || 0, maxSlots || 5, 0]
+                [profileId, userId, department || null, JSON.stringify(tagIds), bio, yearsOfExperience || 0, maxSlots || 5, 0]
             );
         }
 
