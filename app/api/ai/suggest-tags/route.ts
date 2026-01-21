@@ -89,7 +89,7 @@ INSTRUCTIONS:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 1000,
+                    maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: "OBJECT",
@@ -137,10 +137,32 @@ INSTRUCTIONS:
         }
 
         const geminiData = await geminiResponse.json();
-        const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        // Handle Gemini 2.5 Flash thinking mode - response may have multiple parts
+        // The JSON content is typically in the last part (after thinking)
+        const parts = geminiData.candidates?.[0]?.content?.parts;
+        let responseText: string | undefined;
+
+        if (Array.isArray(parts) && parts.length > 0) {
+            // Find the part with text content (skip thought parts if any)
+            for (let i = parts.length - 1; i >= 0; i--) {
+                if (parts[i]?.text) {
+                    responseText = parts[i].text;
+                    break;
+                }
+            }
+        }
 
         if (!responseText) {
-            throw new Error('Empty response from AI');
+            console.error('Gemini response structure:', JSON.stringify(geminiData, null, 2));
+            // Return a graceful fallback instead of erroring
+            return NextResponse.json({
+                suggestedTags: [],
+                existingTagsUsed: 0,
+                newTagsCreated: 0,
+                createdTags: [],
+                warning: 'AI returned empty response. Please try again or select tags manually.'
+            });
         }
 
         // Parse the JSON response (it should be valid JSON now)
@@ -148,11 +170,25 @@ INSTRUCTIONS:
         try {
             suggestions = JSON.parse(responseText);
         } catch (parseError) {
-            console.error('Failed to parse Gemini response:', responseText);
-            return NextResponse.json(
-                { error: 'Failed to parse AI response' },
-                { status: 500 }
-            );
+            console.error('Failed to parse Gemini response. Raw text:', responseText);
+            console.error('Parse error:', parseError);
+
+            // Return a graceful fallback with a warning
+            return NextResponse.json({
+                suggestedTags: [],
+                existingTagsUsed: 0,
+                newTagsCreated: 0,
+                createdTags: [],
+                warning: 'AI response was malformed. Please try again or select tags manually.'
+            });
+        }
+
+        // Validate suggestions structure
+        if (!suggestions.existingTags) {
+            suggestions.existingTags = [];
+        }
+        if (!suggestions.newTags) {
+            suggestions.newTags = [];
         }
 
         // Validate existing tags - case-insensitive matching
