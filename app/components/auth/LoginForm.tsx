@@ -82,9 +82,7 @@ export default function LoginForm() {
       if (data.user.role === 'SUPERVISOR') {
         window.location.href = '/supervisor/dashboard';
       } else if (data.user.role === 'STUDENT') {
-        window.location.href = '/dashboard';
-      } else {
-        window.location.href = '/dashboard';
+        window.location.href = '/student/dashboard';
       }
     } catch (error) {
       console.error('Login error:', error);
