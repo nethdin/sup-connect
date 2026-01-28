@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
         const url = new URL(request.url);
         const unreadOnly = url.searchParams.get('unread') === 'true';
-        const limit = parseInt(url.searchParams.get('limit') || '50');
+        const limit = Math.min(Math.max(1, parseInt(url.searchParams.get('limit') || '50')), 100);
 
         let sql = `
             SELECT id, type, title, message, data, is_read, created_at
@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
             sql += ' AND is_read = 0';
         }
 
-        sql += ' ORDER BY created_at DESC LIMIT ?';
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
 
-        const notifications = await query<any[]>(sql, [auth.userId, limit]);
+        const notifications = await query<any[]>(sql, [auth.userId]);
 
         // Get unread count
         const unreadCount = await query<any[]>(
