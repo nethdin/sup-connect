@@ -15,8 +15,6 @@ export default function RegisterForm() {
     // Student-specific fields
     department: '',
     registrationNo: '',
-    researchInterests: '',
-    preferredFields: [] as string[],
     // Supervisor-specific fields
     tags: '',
     bio: '',
@@ -108,8 +106,6 @@ export default function RegisterForm() {
       if (formData.role === 'STUDENT') {
         payload.department = formData.department;
         payload.registrationNo = formData.registrationNo;
-        if (formData.researchInterests) payload.researchInterests = formData.researchInterests;
-        if (formData.preferredFields.length > 0) payload.preferredFields = formData.preferredFields;
       } else if (formData.role === 'SUPERVISOR') {
         payload.department = formData.department;
         payload.tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
@@ -144,9 +140,7 @@ export default function RegisterForm() {
       if (data.user.role === 'SUPERVISOR') {
         window.location.href = '/supervisor/dashboard';
       } else if (data.user.role === 'STUDENT') {
-        window.location.href = '/dashboard';
-      } else {
-        window.location.href = '/dashboard';
+        window.location.href = '/student/dashboard';
       }
     } catch (error) {
       setErrors({ submit: 'An error occurred. Please try again.' });
@@ -345,56 +339,6 @@ export default function RegisterForm() {
                 {errors.registrationNo && (
                   <p className="mt-1 text-sm text-red-600">{errors.registrationNo}</p>
                 )}
-              </div>
-
-              {/* Research Interests (Optional) */}
-              <div>
-                <label htmlFor="researchInterests" className="block text-sm font-medium text-gray-700">
-                  Research Interests <span className="text-gray-500 text-xs">(Optional)</span>
-                </label>
-                <textarea
-                  id="researchInterests"
-                  name="researchInterests"
-                  value={formData.researchInterests}
-                  onChange={handleChange}
-                  rows={2}
-                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none"
-                  placeholder="Your research interests..."
-                />
-              </div>
-
-              {/* Preferred Fields (Optional) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preferred Fields <span className="text-gray-500 text-xs">(Optional)</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['AI/ML', 'Web Dev', 'Mobile', 'Security', 'Data Sci', 'IoT'].map((field) => {
-                    const fullField = field === 'Web Dev' ? 'Web Development'
-                      : field === 'Security' ? 'Cybersecurity'
-                        : field === 'Data Sci' ? 'Data Science'
-                          : field === 'Mobile' ? 'Mobile Apps' : field;
-                    return (
-                      <label key={field} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.preferredFields.includes(fullField)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setFormData(prev => ({
-                              ...prev,
-                              preferredFields: checked
-                                ? [...prev.preferredFields, fullField]
-                                : prev.preferredFields.filter(f => f !== fullField)
-                            }));
-                          }}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{field}</span>
-                      </label>
-                    );
-                  })}
-                </div>
               </div>
             </>
           )}
