@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserRole } from '@/app/lib/types';
 
@@ -22,6 +22,23 @@ export default function RegisterForm() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch('/api/admin/departments');
+        const data = await response.json();
+        setDepartments(data.departments || []);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -305,16 +322,20 @@ export default function RegisterForm() {
             <label htmlFor="department" className="block text-sm font-medium text-gray-700">
               Department
             </label>
-            <input
-              type="text"
+            <select
               id="department"
               name="department"
               value={formData.department}
               onChange={handleChange}
+              disabled={loadingDepartments}
               className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.department ? 'border-red-500' : 'border-gray-300'
                 }`}
-              placeholder="Computer Science"
-            />
+            >
+              <option value="">{loadingDepartments ? 'Loading...' : 'Select Department'}</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.name}>{dept.name}</option>
+              ))}
+            </select>
             {errors.department && (
               <p className="mt-1 text-sm text-red-600">{errors.department}</p>
             )}
