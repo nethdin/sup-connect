@@ -11,6 +11,8 @@ export default function AssignmentList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -50,6 +52,26 @@ export default function AssignmentList() {
       addToast(err instanceof Error ? err.message : 'Failed to toggle permission', 'error');
     } finally {
       setToggling(null);
+    }
+  };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    try {
+      setRemoving(studentId);
+      await assignmentAPI.removeStudent(studentId);
+
+      // Remove from local state
+      setAssignments(prevAssignments =>
+        prevAssignments.filter(assignment => assignment.studentId !== studentId)
+      );
+
+      addToast('Student removed successfully', 'success');
+      setConfirmRemove(null);
+    } catch (err) {
+      console.error('Error removing student:', err);
+      addToast(err instanceof Error ? err.message : 'Failed to remove student', 'error');
+    } finally {
+      setRemoving(null);
     }
   };
 
@@ -109,8 +131,8 @@ export default function AssignmentList() {
                   Project Idea Editing:
                 </span>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${assignment.canEditIdea
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
                   }`}>
                   {assignment.canEditIdea ? '✓ Allowed' : '🔒 Locked'}
                 </span>
@@ -118,25 +140,54 @@ export default function AssignmentList() {
             </div>
 
             {/* Toggle Permission Button */}
-            <button
-              onClick={() => handleTogglePermission(assignment.studentId)}
-              disabled={toggling === assignment.studentId}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${assignment.canEditIdea
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleTogglePermission(assignment.studentId)}
+                disabled={toggling === assignment.studentId}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${assignment.canEditIdea
                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {toggling === assignment.studentId ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                  Processing...
-                </span>
-              ) : assignment.canEditIdea ? (
-                '🔒 Lock Editing'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {toggling === assignment.studentId ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </span>
+                ) : assignment.canEditIdea ? (
+                  '🔒 Lock Editing'
+                ) : (
+                  '🔓 Allow Editing'
+                )}
+              </button>
+
+              {/* Remove Student Button */}
+              {confirmRemove === assignment.studentId ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRemoveStudent(assignment.studentId)}
+                    disabled={removing === assignment.studentId}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {removing === assignment.studentId ? 'Removing...' : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmRemove(null)}
+                    className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
               ) : (
-                '🔓 Allow Editing'
+                <button
+                  onClick={() => setConfirmRemove(assignment.studentId)}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                >
+                  <i className="fa-solid fa-user-minus mr-2"></i>
+                  Remove Student
+                </button>
               )}
-            </button>
+            </div>
           </div>
         </div>
       ))}
