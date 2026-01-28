@@ -61,7 +61,20 @@ export default function ProfilePage() {
 
     useEffect(() => {
         fetchProfile();
+        fetchDepartments();
     }, []);
+
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+
+    const fetchDepartments = async () => {
+        try {
+            const response = await fetch('/api/admin/departments');
+            const data = await response.json();
+            setDepartments(data.departments || []);
+        } catch (err) {
+            console.error('Failed to fetch departments:', err);
+        }
+    };
 
     const fetchProfile = async () => {
         try {
@@ -370,13 +383,17 @@ export default function ProfilePage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                                    <input
-                                        type="text"
+                                    <select
                                         name="department"
                                         value={formData.department}
                                         onChange={handleChange}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                                    />
+                                    >
+                                        <option value="">Select Department</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept.id} value={dept.name}>{dept.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -390,13 +407,17 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             name="department"
                                             value={formData.department}
                                             onChange={handleChange}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                                        />
+                                        >
+                                            <option value="">Select Department</option>
+                                            {departments.map((dept) => (
+                                                <option key={dept.id} value={dept.name}>{dept.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
