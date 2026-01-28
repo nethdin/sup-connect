@@ -56,7 +56,7 @@ export default function RouteGuard({
         // Redirect based on user role
         switch (user?.role) {
           case 'STUDENT':
-            router.push('/dashboard');
+            router.push('/student/dashboard');
             break;
           case 'SUPERVISOR':
             router.push('/supervisor/dashboard');
