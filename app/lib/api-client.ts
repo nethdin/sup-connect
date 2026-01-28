@@ -117,6 +117,37 @@ export const authAPI = {
 };
 
 // ============================================
+// USER PROFILE API
+// ============================================
+
+export const userAPI = {
+  getProfile: async (): Promise<{
+    user: { id: string; email: string; name: string; role: string; createdAt: string };
+    profile: any;
+  }> => {
+    return apiRequest('/user/profile');
+  },
+
+  updateProfile: async (data: {
+    name?: string;
+    email?: string;
+    password?: string;
+    profile?: any;
+  }): Promise<{ message: string }> => {
+    return apiRequest('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteProfile: async (): Promise<{ message: string }> => {
+    return apiRequest('/user/profile', {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
 // SUPERVISOR API
 // ============================================
 
@@ -156,7 +187,7 @@ export const supervisorAPI = {
     bio: string;
     maxSlots: number;
   }): Promise<{ message: string; profile: SupervisorProfile }> => {
-    return apiRequest('/supervisor/profile', {
+    return apiRequest('/profile', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -325,6 +356,94 @@ export const assignmentAPI = {
 };
 
 // ============================================
+// MESSAGE API
+// ============================================
+
+export interface Conversation {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_role: string;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
+
+export interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  sender_name: string;
+}
+
+export const messageAPI = {
+  getConversations: async (): Promise<{ conversations: Conversation[] }> => {
+    return apiRequest('/messages');
+  },
+
+  getMessages: async (recipientId: string): Promise<{ messages: Message[] }> => {
+    return apiRequest(`/messages/${recipientId}`);
+  },
+
+  sendMessage: async (receiverId: string, content: string): Promise<{ message: string; messageId: string }> => {
+    return apiRequest('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ receiverId, content }),
+    });
+  },
+
+  markAsRead: async (recipientId: string): Promise<{ message: string }> => {
+    return apiRequest(`/messages/${recipientId}`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// ============================================
+// NOTIFICATION API
+// ============================================
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+  is_read: boolean;
+  created_at: string;
+}
+
+export const notificationAPI = {
+  getNotifications: async (options?: { unreadOnly?: boolean; limit?: number }): Promise<{
+    notifications: Notification[];
+    unreadCount: number;
+  }> => {
+    const params = new URLSearchParams();
+    if (options?.unreadOnly) params.set('unread', 'true');
+    if (options?.limit) params.set('limit', options.limit.toString());
+    const query = params.toString();
+    return apiRequest(`/notifications${query ? `?${query}` : ''}`);
+  },
+
+  markAsRead: async (notificationId?: string): Promise<{ message: string }> => {
+    return apiRequest('/notifications', {
+      method: 'PUT',
+      body: JSON.stringify(notificationId ? { notificationId } : { markAllRead: true }),
+    });
+  },
+
+  delete: async (notificationId?: string): Promise<{ message: string }> => {
+    const query = notificationId ? `?id=${notificationId}` : '?all=true';
+    return apiRequest(`/notifications${query}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
 // CONFIG API (Tags)
 // ============================================
 
@@ -384,6 +503,55 @@ export const meetingAPI = {
     return apiRequest('/availability/book', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+};
+
+// ============================================
+// DEPARTMENT API
+// ============================================
+
+export interface Department {
+  id: string;
+  name: string;
+  code?: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export const departmentAPI = {
+  getDepartments: async (includeInactive = false): Promise<{ departments: Department[] }> => {
+    const query = includeInactive ? '?all=true' : '';
+    return apiRequest(`/admin/departments${query}`);
+  },
+
+  createDepartment: async (data: { name: string; code?: string }): Promise<{
+    message: string;
+    department: Department;
+  }> => {
+    return apiRequest('/admin/departments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateDepartment: async (data: {
+    id: string;
+    name?: string;
+    code?: string;
+    is_active?: boolean;
+    sort_order?: number;
+  }): Promise<{ message: string }> => {
+    return apiRequest('/admin/departments', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteDepartment: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/admin/departments?id=${id}`, {
+      method: 'DELETE',
     });
   },
 };
