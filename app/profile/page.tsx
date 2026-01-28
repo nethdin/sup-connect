@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/context/ToastContext';
-import { configAPI, Tag } from '@/app/lib/api-client';
+import { configAPI, userAPI, authAPI, Tag } from '@/app/lib/api-client';
 
 interface UserProfile {
     id: string;
@@ -20,11 +20,13 @@ interface SupervisorProfile {
     years_of_experience?: number;
     max_slots?: number;
     current_slots?: number;
+    profile_picture?: string;
 }
 
 interface StudentProfile {
     registration_no?: string;
     department?: string;
+    profile_picture?: string;
 }
 
 export default function ProfilePage() {
@@ -35,6 +37,9 @@ export default function ProfilePage() {
     const [availableTags, setAvailableTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
     // Form state
     const [formData, setFormData] = useState({
@@ -50,6 +55,8 @@ export default function ProfilePage() {
         bio: '',
         yearsOfExperience: 0,
         maxSlots: 5,
+        // Profile picture (base64)
+        profilePicture: '',
     });
 
     useEffect(() => {
@@ -91,6 +98,8 @@ export default function ProfilePage() {
                 bio: data.profile?.bio || '',
                 yearsOfExperience: data.profile?.years_of_experience || 0,
                 maxSlots: data.profile?.max_slots || 5,
+                // Profile picture
+                profilePicture: data.profile?.profile_picture || '',
             }));
         } catch (err) {
             console.error('Failed to fetch profile:', err);
@@ -131,6 +140,7 @@ export default function ProfilePage() {
                 payload.profile = {
                     registrationNo: formData.registrationNo,
                     department: formData.department,
+                    profilePicture: formData.profilePicture || undefined,
                 };
             } else if (user?.role === 'SUPERVISOR') {
                 payload.profile = {
@@ -139,6 +149,7 @@ export default function ProfilePage() {
                     bio: formData.bio,
                     yearsOfExperience: Number(formData.yearsOfExperience),
                     maxSlots: Number(formData.maxSlots),
+                    profilePicture: formData.profilePicture || undefined,
                 };
             }
 
@@ -173,6 +184,27 @@ export default function ProfilePage() {
             addToast(err instanceof Error ? err.message : 'Failed to update profile', 'error');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') {
+            addToast('Please type DELETE to confirm', 'error');
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            await userAPI.deleteProfile();
+            addToast('Account deleted successfully', 'success');
+            authAPI.logout();
+            router.push('/login');
+        } catch (err) {
+            console.error('Failed to delete account:', err);
+            addToast(err instanceof Error ? err.message : 'Failed to delete account', 'error');
+        } finally {
+            setDeleting(false);
+            setShowDeleteModal(false);
         }
     };
 
@@ -232,6 +264,64 @@ export default function ProfilePage() {
                             <span className="ml-3 text-sm text-gray-500">
                                 Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                             </span>
+                        </div>
+                    </div>
+
+                    {/* Profile Picture */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h2>
+                        <div className="flex items-center gap-6">
+                            <div className="relative">
+                                {formData.profilePicture ? (
+                                    <img
+                                        src={formData.profilePicture}
+                                        alt="Profile"
+                                        className="w-24 h-24 rounded-full object-cover border-4 border-brand-100"
+                                    />
+                                ) : (
+                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-2xl font-bold">
+                                        {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Upload a new photo
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                addToast('Image must be less than 5MB', 'error');
+                                                return;
+                                            }
+                                            const reader = new FileReader();
+                                            reader.onload = (event) => {
+                                                const base64 = event.target?.result as string;
+                                                setFormData(prev => ({ ...prev, profilePicture: base64 }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+                                />
+                                <p className="mt-2 text-xs text-gray-500">
+                                    JPG, PNG, or GIF. Max 5MB.
+                                </p>
+                                {formData.profilePicture && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, profilePicture: '' }))}
+                                        className="mt-2 text-sm text-red-600 hover:text-red-700"
+                                    >
+                                        <i className="fa-solid fa-trash mr-1"></i>
+                                        Remove photo
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -402,6 +492,72 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 </form>
+
+                {/* Danger Zone */}
+                <div className="mt-8 bg-white rounded-xl shadow-sm border border-red-200 p-6">
+                    <h2 className="text-lg font-semibold text-red-600 mb-4">
+                        <i className="fa-solid fa-exclamation-triangle mr-2"></i>
+                        Danger Zone
+                    </h2>
+                    <p className="text-gray-600 mb-4">
+                        Once you delete your account, there is no going back. Please be certain.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
+                    >
+                        <i className="fa-solid fa-trash mr-2"></i>
+                        Delete Account
+                    </button>
+                </div>
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">
+                                <i className="fa-solid fa-exclamation-circle text-red-600 mr-2"></i>
+                                Confirm Account Deletion
+                            </h3>
+                            <p className="text-gray-600 mb-4">
+                                This action <strong>cannot be undone</strong>. This will permanently delete your account and remove all associated data.
+                            </p>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Type <span className="font-bold text-red-600">DELETE</span> to confirm:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                                    placeholder="Type DELETE here"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setDeleteConfirmText('');
+                                    }}
+                                    className="px-4 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleting || deleteConfirmText !== 'DELETE'}
+                                    className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                                >
+                                    {deleting ? 'Deleting...' : 'Delete My Account'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </main>
     );
