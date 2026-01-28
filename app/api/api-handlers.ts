@@ -936,6 +936,26 @@ export async function sendBookingRequest(request: NextRequest) {
       [requestId, auth.userId, supervisorId, 'PENDING']
     );
 
+    // Create notification for the supervisor
+    const student = await queryOne<any>('SELECT name FROM users WHERE id = ?', [auth.userId]);
+    const supervisorUser = await queryOne<any>(
+      'SELECT user_id FROM supervisor_profiles WHERE id = ?',
+      [supervisorId]
+    );
+    if (supervisorUser) {
+      const notificationId = generateId();
+      await query(
+        `INSERT INTO notifications (id, user_id, type, title, message, data) 
+         VALUES (?, ?, 'NEW_REQUEST', 'New Supervision Request', ?, ?)`,
+        [
+          notificationId,
+          supervisorUser.user_id,
+          `${student?.name || 'A student'} has requested you as their supervisor.`,
+          JSON.stringify({ studentId: auth.userId, requestId })
+        ]
+      );
+    }
+
     const bookingRequest = {
       id: requestId,
       studentId: auth.userId,
@@ -1199,6 +1219,24 @@ export async function acceptBookingRequest(requestId: string, request: NextReque
       ['DECLINED', bookingRequest.student_id, 'PENDING', requestId]
     );
 
+    // Create notification for the student
+    const [supervisorUser] = await connection.query<any[]>(
+      'SELECT u.name FROM users u JOIN supervisor_profiles sp ON sp.user_id = u.id WHERE sp.id = ?',
+      [profile.id]
+    );
+    const supervisorName = supervisorUser?.[0]?.name || 'A supervisor';
+    const notificationId = generateId();
+    await connection.query(
+      `INSERT INTO notifications (id, user_id, type, title, message, data) 
+       VALUES (?, ?, 'REQUEST_ACCEPTED', 'Request Accepted', ?, ?)`,
+      [
+        notificationId,
+        bookingRequest.student_id,
+        `Your supervision request has been accepted by ${supervisorName}!`,
+        JSON.stringify({ supervisorId: profile.id, requestId })
+      ]
+    );
+
     await connection.commit();
 
     const [updatedRows] = await connection.query<any[]>(
@@ -1270,6 +1308,24 @@ export async function declineBookingRequest(requestId: string, request: NextRequ
     await query(
       'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
       ['DECLINED', requestId]
+    );
+
+    // Create notification for the student
+    const supervisorUser = await queryOne<any>(
+      'SELECT u.name FROM users u JOIN supervisor_profiles sp ON sp.user_id = u.id WHERE sp.id = ?',
+      [profile.id]
+    );
+    const supervisorName = supervisorUser?.name || 'A supervisor';
+    const notificationId = generateId();
+    await query(
+      `INSERT INTO notifications (id, user_id, type, title, message, data) 
+       VALUES (?, ?, 'REQUEST_DECLINED', 'Request Declined', ?, ?)`,
+      [
+        notificationId,
+        bookingRequest.student_id,
+        `Your supervision request was declined by ${supervisorName}.`,
+        JSON.stringify({ supervisorId: profile.id, requestId })
+      ]
     );
 
     const updatedRequest = await queryOne<any>(
@@ -1768,6 +1824,24 @@ export async function removeStudentAssignment(studentId: string, request: NextRe
     await connection.query(
       'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE student_id = ? AND supervisor_id = ? AND status = ?',
       ['CANCELLED', studentId, profile.id, 'ACCEPTED']
+    );
+
+    // Create notification for the student
+    const [supervisorUser] = await connection.query<any[]>(
+      'SELECT u.name FROM users u JOIN supervisor_profiles sp ON sp.user_id = u.id WHERE sp.id = ?',
+      [profile.id]
+    );
+    const supervisorName = supervisorUser?.[0]?.name || 'A supervisor';
+    const notificationId = generateId();
+    await connection.query(
+      `INSERT INTO notifications (id, user_id, type, title, message, data) 
+       VALUES (?, ?, 'ASSIGNMENT_REMOVED', 'Assignment Removed', ?, ?)`,
+      [
+        notificationId,
+        studentId,
+        `You have been removed from ${supervisorName}'s supervision.`,
+        JSON.stringify({ supervisorId: profile.id })
+      ]
     );
 
     await connection.commit();
