@@ -67,11 +67,15 @@ export default function Navbar() {
         { href: '/supervisors', label: 'Browse Supervisors' },
         { href: '/student/recommendations', label: 'My Recommendations' },
         { href: '/student/idea', label: 'My Project Idea' },
+        { href: '/student/appointments', label: 'My Appointments' },
+        { href: '/messages', label: 'Messages' },
         { href: '/profile', label: 'My Profile' },
       ];
     } else if (user?.role === 'SUPERVISOR') {
       return [
         { href: '/supervisor/dashboard', label: 'Dashboard' },
+        { href: '/supervisor/availability', label: 'Manage Availability' },
+        { href: '/messages', label: 'Messages' },
         { href: '/profile', label: 'My Profile' },
       ];
     } else if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {
@@ -207,55 +211,55 @@ export default function Navbar() {
             )}
           </div>
 
-            {/* Mobile toggle */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              onClick={() => setIsMobileOpen(!isMobileOpen)}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-              </svg>
-            </button>
-          </div>
-
-          {/* Mobile menu */}
-          {isMobileOpen && (
-            <div className="md:hidden pb-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <Link href="/" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
-                Home
-              </Link>
-
-              {isHome && (
-                <>
-                  <Link href="#features" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
-                    Features
-                  </Link>
-                  <Link href="#cta" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
-                    Get Started
-                  </Link>
-                </>
-              )}
-
-              {!isLoggedIn ? (
-                <>
-                  <Link href="/login" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
-                    Login
-                  </Link>
-                  <Link href="/register" className="block px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium transition-colors">
-                    Sign Up
-                  </Link>
-                </>
-              ) : (
-                <button
-                  onClick={handleLogout}
-                  className="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium w-full text-left transition-colors"
-                >
-                  Logout
-                </button>
-              )}
-            </div>
-          )}
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile menu */}
+        {isMobileOpen && (
+          <div className="md:hidden pb-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <Link href="/" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+              Home
+            </Link>
+
+            {isHome && (
+              <>
+                <Link href="#features" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+                  Features
+                </Link>
+                <Link href="#cta" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+                  Get Started
+                </Link>
+              </>
+            )}
+
+            {!isLoggedIn ? (
+              <>
+                <Link href="/login" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+                  Login
+                </Link>
+                <Link href="/register" className="block px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium transition-colors">
+                  Sign Up
+                </Link>
+              </>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium w-full text-left transition-colors"
+              >
+                Logout
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </nav>
   );
 }
