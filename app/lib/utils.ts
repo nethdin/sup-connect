@@ -98,6 +98,8 @@ export function getUserDashboardUrl(role: string): string {
     return '/supervisor/dashboard';
   } else if (role === 'STUDENT') {
     return '/student/dashboard';
+  } else if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    return '/admin/dashboard';
   } else {
     return '/';
   }
