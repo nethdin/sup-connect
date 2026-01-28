@@ -42,7 +42,7 @@ export default function LoginForm() {
 
     setIsLoading(true);
     setErrors({}); // Clear previous errors
-    
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -73,16 +73,20 @@ export default function LoginForm() {
       if (data.token) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         // Set cookie for server-side middleware
         document.cookie = `authToken=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
       }
-      
+
       // Redirect based on role
       if (data.user.role === 'SUPERVISOR') {
         window.location.href = '/supervisor/dashboard';
       } else if (data.user.role === 'STUDENT') {
         window.location.href = '/student/dashboard';
+      } else if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
+        window.location.href = '/admin/dashboard';
+      } else {
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -116,9 +120,8 @@ export default function LoginForm() {
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="you@example.com"
         />
         {errors.email && (
@@ -140,9 +143,8 @@ export default function LoginForm() {
           name="password"
           value={formData.password}
           onChange={handleChange}
-          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="••••••••"
         />
         {errors.password && (
