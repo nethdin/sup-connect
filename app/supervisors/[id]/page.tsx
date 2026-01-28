@@ -42,7 +42,7 @@ export default function SupervisorDetailPage() {
       setIsSubmitting(true);
       await studentAPI.sendRequest(supervisor.id);
       addToast('Request sent successfully!', 'success');
-      router.push('/dashboard');
+      router.push('/student/dashboard');
     } catch (err) {
       console.error('Failed to send request:', err);
       addToast(err instanceof Error ? err.message : 'Failed to send request', 'error');
