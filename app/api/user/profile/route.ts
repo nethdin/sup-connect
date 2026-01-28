@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         if (user.role === 'SUPERVISOR') {
             profileData = await queryOne<any>(
                 `SELECT id, department, tags, bio, 
-                        years_of_experience, max_slots, current_slots
+                        years_of_experience, max_slots, current_slots, profile_picture
                  FROM supervisor_profiles WHERE user_id = ?`,
                 [auth.userId]
             );
@@ -53,12 +53,22 @@ export async function GET(request: NextRequest) {
                     profileData.tags = [];
                 }
             }
+            // Convert profile picture blob to base64
+            if (profileData?.profile_picture) {
+                const buffer = Buffer.from(profileData.profile_picture);
+                profileData.profile_picture = buffer.toString('utf-8');
+            }
         } else if (user.role === 'STUDENT') {
             profileData = await queryOne<any>(
-                `SELECT id, registration_no, department
+                `SELECT id, registration_no, department, profile_picture
                  FROM student_profiles WHERE user_id = ?`,
                 [auth.userId]
             );
+            // Convert profile picture blob to base64
+            if (profileData?.profile_picture) {
+                const buffer = Buffer.from(profileData.profile_picture);
+                profileData.profile_picture = buffer.toString('utf-8');
+            }
         }
 
         return NextResponse.json({
@@ -136,7 +146,7 @@ export async function PUT(request: NextRequest) {
         // Update role-specific profile
         if (profile) {
             if (user.role === 'SUPERVISOR') {
-                const { department, tags, bio, yearsOfExperience, maxSlots } = profile;
+                const { department, tags, bio, yearsOfExperience, maxSlots, profilePicture } = profile;
                 const profUpdates: string[] = [];
                 const profValues: any[] = [];
 
@@ -160,6 +170,11 @@ export async function PUT(request: NextRequest) {
                     profUpdates.push('max_slots = ?');
                     profValues.push(maxSlots);
                 }
+                if (profilePicture !== undefined) {
+                    profUpdates.push('profile_picture = ?');
+                    // Store base64 string directly as blob
+                    profValues.push(profilePicture);
+                }
 
                 if (profUpdates.length > 0) {
                     profUpdates.push('updated_at = NOW()');
@@ -170,7 +185,7 @@ export async function PUT(request: NextRequest) {
                     );
                 }
             } else if (user.role === 'STUDENT') {
-                const { registrationNo, department } = profile;
+                const { registrationNo, department, profilePicture } = profile;
                 const profUpdates: string[] = [];
                 const profValues: any[] = [];
 
@@ -181,6 +196,11 @@ export async function PUT(request: NextRequest) {
                 if (department !== undefined) {
                     profUpdates.push('department = ?');
                     profValues.push(department);
+                }
+                if (profilePicture !== undefined) {
+                    profUpdates.push('profile_picture = ?');
+                    // Store base64 string directly as blob
+                    profValues.push(profilePicture);
                 }
 
                 if (profUpdates.length > 0) {
@@ -198,6 +218,74 @@ export async function PUT(request: NextRequest) {
     } catch (error) {
         console.error('Update profile error:', error);
         return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+    }
+}
+
+// DELETE - Soft delete user account
+export async function DELETE(request: NextRequest) {
+    try {
+        const auth = getUserFromRequest(request);
+        if (!auth) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Get current user
+        const user = await queryOne<any>(
+            'SELECT id, role FROM users WHERE id = ? AND deleted_at IS NULL',
+            [auth.userId]
+        );
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // For supervisors, check if they have active assignments
+        if (user.role === 'SUPERVISOR') {
+            const supervisorProfile = await queryOne<any>(
+                'SELECT id FROM supervisor_profiles WHERE user_id = ?',
+                [auth.userId]
+            );
+
+            if (supervisorProfile) {
+                const activeAssignments = await query<any[]>(
+                    'SELECT id FROM assignments WHERE supervisor_id = ?',
+                    [supervisorProfile.id]
+                );
+
+                if (activeAssignments && activeAssignments.length > 0) {
+                    return NextResponse.json({
+                        error: 'Cannot delete account with active student assignments. Please transfer or remove assignments first.'
+                    }, { status: 400 });
+                }
+
+                // Cancel any pending booking requests
+                await query(
+                    `UPDATE booking_requests SET status = 'CANCELLED', updated_at = NOW() 
+                     WHERE supervisor_id = ? AND status = 'PENDING'`,
+                    [supervisorProfile.id]
+                );
+            }
+        }
+
+        // For students, cancel pending booking requests
+        if (user.role === 'STUDENT') {
+            await query(
+                `UPDATE booking_requests SET status = 'CANCELLED', updated_at = NOW() 
+                 WHERE student_id = ? AND status = 'PENDING'`,
+                [auth.userId]
+            );
+        }
+
+        // Soft delete the user
+        await query(
+            'UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = ?',
+            [auth.userId]
+        );
+
+        return NextResponse.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Delete profile error:', error);
+        return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });
     }
 }
 
