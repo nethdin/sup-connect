@@ -22,7 +22,7 @@ export default function StudentIdeaPage() {
         setHasIdea(true);
         // Redirect to dashboard with a message
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/student/dashboard');
         }, 2000);
       } else {
         setLoading(false);
@@ -89,7 +89,7 @@ export default function StudentIdeaPage() {
               Tell us about your final-year project and get matched with the perfect supervisor
             </p>
 
-            <ProjectIdeaForm onSubmit={() => router.push('/dashboard')} />
+            <ProjectIdeaForm onSubmit={() => router.push('/student/dashboard')} />
           </div>
         </div>
       </main>
