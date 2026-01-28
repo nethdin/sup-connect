@@ -141,6 +141,8 @@ export default function RegisterForm() {
         window.location.href = '/supervisor/dashboard';
       } else if (data.user.role === 'STUDENT') {
         window.location.href = '/student/dashboard';
+      } else {
+        window.location.href = '/';
       }
     } catch (error) {
       setErrors({ submit: 'An error occurred. Please try again.' });
