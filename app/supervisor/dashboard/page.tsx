@@ -206,7 +206,7 @@ export default function SupervisorDashboard() {
                     View Schedule
                   </button>
                   <Link
-                    href="/supervisor/profile"
+                    href="/profile"
                     className="block w-full px-4 py-2 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition text-sm font-medium"
                   >
                     Edit Profile
@@ -226,7 +226,7 @@ export default function SupervisorDashboard() {
                   New tags are available that match your expertise areas. Update your profile to improve student matching.
                 </p>
                 <Link
-                  href="/supervisor/profile"
+                  href="/profile"
                   className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition text-sm font-medium"
                 >
                   <i className="fa-solid fa-tags mr-2"></i>
