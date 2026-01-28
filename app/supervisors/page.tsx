@@ -65,7 +65,7 @@ export default function SupervisorsPage() {
       await studentAPI.sendRequest(supervisorId);
       addToast('Request sent successfully!', 'success');
       // Optionally redirect to dashboard
-      router.push('/dashboard');
+      router.push('/student/dashboard');
     } catch (err) {
       console.error('Failed to send request:', err);
       addToast(err instanceof Error ? err.message : 'Failed to send request', 'error');
