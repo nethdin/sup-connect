@@ -1704,3 +1704,85 @@ export async function toggleStudentEditPermission(studentId: string, request: Ne
     );
   }
 }
+
+// Remove student from supervisor's assigned students
+export async function removeStudentAssignment(studentId: string, request: NextRequest) {
+  const connection = await getPool().getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const auth = getUserFromRequest(request);
+    if (!auth || auth.role !== 'SUPERVISOR') {
+      await connection.rollback();
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get supervisor profile with lock
+    const [profileRows] = await connection.query<any[]>(
+      'SELECT * FROM supervisor_profiles WHERE user_id = ? FOR UPDATE',
+      [auth.userId]
+    );
+
+    if (!profileRows || profileRows.length === 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        { error: 'Supervisor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    const profile = profileRows[0];
+
+    // Get the assignment with lock
+    const [assignmentRows] = await connection.query<any[]>(
+      'SELECT * FROM assignments WHERE student_id = ? AND supervisor_id = ? FOR UPDATE',
+      [studentId, profile.id]
+    );
+
+    if (!assignmentRows || assignmentRows.length === 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        { error: 'Assignment not found' },
+        { status: 404 }
+      );
+    }
+
+    const assignment = assignmentRows[0];
+
+    // Delete the assignment
+    await connection.query(
+      'DELETE FROM assignments WHERE id = ?',
+      [assignment.id]
+    );
+
+    // Decrement supervisor's current slots
+    await connection.query(
+      'UPDATE supervisor_profiles SET current_slots = GREATEST(current_slots - 1, 0) WHERE id = ?',
+      [profile.id]
+    );
+
+    // Update the corresponding booking request status to CANCELLED (student was removed after acceptance)
+    await connection.query(
+      'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE student_id = ? AND supervisor_id = ? AND status = ?',
+      ['CANCELLED', studentId, profile.id, 'ACCEPTED']
+    );
+
+    await connection.commit();
+
+    return NextResponse.json({
+      message: 'Student removed successfully',
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Remove student assignment error:', error);
+    return NextResponse.json(
+      { error: 'Failed to remove student' },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
