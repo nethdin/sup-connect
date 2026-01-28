@@ -664,3 +664,60 @@ async function getUpcomingMeetings() {
   }
 }
 */
+
+// ============================================
+// SCHEDULING API
+// ============================================
+
+export const schedulingAPI = {
+  // Availability
+  getAvailability: async (supervisorId?: string): Promise<{ availability: any[] }> => {
+    const params = supervisorId ? `?supervisorId=${supervisorId}` : '';
+    return apiRequest(`/supervisor/availability${params}`);
+  },
+
+  createAvailability: async (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    slotDuration?: number;
+  }): Promise<{ message: string; availability: any }> => {
+    return apiRequest('/supervisor/availability', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteAvailability: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/supervisor/availability?id=${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Appointments
+  getAppointments: async (options?: { status?: string; upcoming?: boolean }): Promise<{ appointments: any[] }> => {
+    const params = new URLSearchParams();
+    if (options?.status) params.append('status', options.status);
+    if (options?.upcoming) params.append('upcoming', 'true');
+    const queryString = params.toString();
+    return apiRequest(`/appointments${queryString ? '?' + queryString : ''}`);
+  },
+
+  bookAppointment: async (data: {
+    availabilityId: string;
+    dateTime: string;
+    notes?: string;
+  }): Promise<{ message: string; appointmentId: string }> => {
+    return apiRequest('/appointments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateAppointmentStatus: async (appointmentId: string, status: string): Promise<{ message: string }> => {
+    return apiRequest('/appointments', {
+      method: 'PUT',
+      body: JSON.stringify({ appointmentId, status }),
+    });
+  },
+};
