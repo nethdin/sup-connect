@@ -97,9 +97,9 @@ export function getUserDashboardUrl(role: string): string {
   if (role === 'SUPERVISOR') {
     return '/supervisor/dashboard';
   } else if (role === 'STUDENT') {
-    return '/dashboard';
+    return '/student/dashboard';
   } else {
-    return '/dashboard';
+    return '/';
   }
 }
 
