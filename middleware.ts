@@ -32,11 +32,10 @@ const ROUTE_RULES: {
   '/': { requiresAuth: false },
   '/login': { requiresAuth: false },
   '/register': { requiresAuth: false },
-  '/dashboard': { requiresAuth: true, allowedRoles: ['STUDENT'] },
-  '/student': { requiresAuth: true, allowedRoles: ['STUDENT'] },
-  '/supervisors': { requiresAuth: true, allowedRoles: ['STUDENT'] },
+  '/student/dashboard': { requiresAuth: true, allowedRoles: ['STUDENT'] },
+  '/supervisors': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'STUDENT'] },
   '/supervisor/dashboard': { requiresAuth: true, allowedRoles: ['SUPERVISOR'] },
-  '/supervisor/profile': { requiresAuth: true, allowedRoles: ['SUPERVISOR'] },
+  '/profile': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'STUDENT', 'SUPERVISOR'] },
   '/admin': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN'] },
 };
 
@@ -105,7 +104,7 @@ export function middleware(request: NextRequest) {
     // User doesn't have required role - redirect to appropriate dashboard
     switch (payload.role) {
       case 'STUDENT':
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        return NextResponse.redirect(new URL('/student/dashboard', request.url));
       case 'SUPERVISOR':
         return NextResponse.redirect(new URL('/supervisor/dashboard', request.url));
       case 'ADMIN':
