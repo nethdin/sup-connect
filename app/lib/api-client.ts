@@ -353,6 +353,12 @@ export const assignmentAPI = {
   }> => {
     return apiRequest('/supervisor/assignments');
   },
+
+  removeStudent: async (studentId: string): Promise<{ message: string }> => {
+    return apiRequest(`/supervisor/assignments/${studentId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ============================================
