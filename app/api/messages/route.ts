@@ -32,24 +32,20 @@ export async function GET(request: NextRequest) {
                     WHEN m.sender_id = ? THEN m.receiver_id 
                     ELSE m.sender_id 
                 END as user_id,
-                u.name as user_name,
-                u.email as user_email,
-                u.role as user_role,
+                MAX(u.name) as user_name,
+                MAX(u.email) as user_email,
+                MAX(u.role) as user_role,
                 (
-                    SELECT content FROM messages 
-                    WHERE (sender_id = ? AND receiver_id = user_id) 
-                       OR (sender_id = user_id AND receiver_id = ?)
-                    ORDER BY created_at DESC LIMIT 1
+                    SELECT content FROM messages m2
+                    WHERE (m2.sender_id = ? AND m2.receiver_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END) 
+                       OR (m2.sender_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END AND m2.receiver_id = ?)
+                    ORDER BY m2.created_at DESC LIMIT 1
                 ) as last_message,
+                MAX(m.created_at) as last_message_at,
                 (
-                    SELECT created_at FROM messages 
-                    WHERE (sender_id = ? AND receiver_id = user_id) 
-                       OR (sender_id = user_id AND receiver_id = ?)
-                    ORDER BY created_at DESC LIMIT 1
-                ) as last_message_at,
-                (
-                    SELECT COUNT(*) FROM messages 
-                    WHERE sender_id = user_id AND receiver_id = ? AND is_read = 0
+                    SELECT COUNT(*) FROM messages m3
+                    WHERE m3.sender_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END 
+                      AND m3.receiver_id = ? AND m3.is_read = 0
                 ) as unread_count
             FROM messages m
             JOIN users u ON u.id = CASE 
@@ -58,12 +54,11 @@ export async function GET(request: NextRequest) {
             END
             WHERE (m.sender_id = ? OR m.receiver_id = ?)
               AND u.deleted_at IS NULL
-            GROUP BY user_id
+            GROUP BY CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END
             ORDER BY last_message_at DESC
         `, [
-            auth.userId, auth.userId, auth.userId,
-            auth.userId, auth.userId, auth.userId,
-            auth.userId, auth.userId, auth.userId
+            auth.userId, auth.userId, auth.userId, auth.userId, auth.userId,
+            auth.userId, auth.userId, auth.userId, auth.userId, auth.userId, auth.userId
         ]);
 
         return NextResponse.json({ conversations });
