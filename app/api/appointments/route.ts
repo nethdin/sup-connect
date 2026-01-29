@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
                 sup.email as supervisor_email,
                 sp.department as supervisor_department
             FROM appointments a
-            JOIN users s ON a.student_id = s.id
-            JOIN supervisor_profiles sp ON a.supervisor_id = sp.id
-            JOIN users sup ON sp.user_id = sup.id
-            WHERE (a.student_id = ? OR sp.user_id = ?)
+            JOIN users s ON a.student_id COLLATE utf8mb4_unicode_ci = s.id COLLATE utf8mb4_unicode_ci
+            JOIN supervisor_profiles sp ON a.supervisor_id COLLATE utf8mb4_unicode_ci = sp.id COLLATE utf8mb4_unicode_ci
+            JOIN users sup ON sp.user_id COLLATE utf8mb4_unicode_ci = sup.id COLLATE utf8mb4_unicode_ci
+            WHERE (a.student_id COLLATE utf8mb4_unicode_ci = ? OR sp.user_id COLLATE utf8mb4_unicode_ci = ?)
         `;
         const params: any[] = [auth.userId, auth.userId];
 
@@ -94,10 +94,27 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { availabilityId, dateTime, notes } = body;
+        const { availabilityId, notes } = body;
+        let { dateTime } = body;
 
         if (!availabilityId || !dateTime) {
             return NextResponse.json({ error: 'Availability ID and date/time are required' }, { status: 400 });
+        }
+
+        // Sanitize datetime - convert ISO format to MySQL datetime format
+        // Handle malformed values like '2026-01-28T18:30:00.000ZT11:30:00'
+        if (dateTime.includes('T')) {
+            // Parse as Date and convert to MySQL format
+            const dt = new Date(dateTime.split('T')[0] + 'T' + dateTime.split('T').pop()?.replace(/Z.*$/, '') + ':00');
+            if (!isNaN(dt.getTime())) {
+                dateTime = dt.toISOString().slice(0, 19).replace('T', ' ');
+            } else {
+                // Fallback: extract date and last time component
+                const datePart = dateTime.split('T')[0];
+                const timeParts = dateTime.match(/\d{2}:\d{2}(:\d{2})?/g);
+                const timePart = timeParts ? timeParts[timeParts.length - 1] : '00:00:00';
+                dateTime = `${datePart} ${timePart.length === 5 ? timePart + ':00' : timePart}`;
+            }
         }
 
         // Get the availability slot
