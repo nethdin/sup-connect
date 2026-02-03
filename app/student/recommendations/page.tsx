@@ -16,14 +16,14 @@ interface RecommendationItem {
     score: number;
 }
 
-type SortOption = 'match_count' | 'experience' | 'availability';
+type SortOption = 'score' | 'match_count' | 'experience' | 'availability';
 
 export default function RecommendationsPage() {
     const router = useRouter();
     const { addToast } = useToast();
     const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
     const [studentTags, setStudentTags] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState<SortOption>('match_count');
+    const [sortBy, setSortBy] = useState<SortOption>('score');
     const [fullMatchCount, setFullMatchCount] = useState(0);
     const [partialMatchCount, setPartialMatchCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
