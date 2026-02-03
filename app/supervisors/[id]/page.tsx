@@ -212,6 +212,13 @@ export default function SupervisorDetailPage() {
                       : 'No Slots Available'}
                 </button>
                 <button
+                  onClick={() => router.push(`/messages?userId=${supervisor.user?.id}&userName=${encodeURIComponent(supervisor.user?.name || '')}&userEmail=${encodeURIComponent(supervisor.user?.email || '')}&userRole=${encodeURIComponent('SUPERVISOR')}`)}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center gap-2"
+                >
+                  <i className="fa-solid fa-envelope"></i>
+                  Message
+                </button>
+                <button
                   onClick={() => router.push('/supervisors')}
                   className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >
