@@ -2,6 +2,7 @@
 
 import { SupervisorProfile } from '@/app/lib/types';
 import { getInitials } from '@/app/lib/utils';
+import TagDisplay from '@/app/components/common/TagDisplay';
 import Image from 'next/image';
 
 interface SupervisorCardProps {
@@ -43,20 +44,12 @@ export default function SupervisorCard({
         </p>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {supervisor.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag.id}
-              className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full"
-            >
-              {tag.name}
-            </span>
-          ))}
-          {supervisor.tags.length > 3 && (
-            <span className="px-3 py-1 bg-gray-50 text-gray-600 text-xs font-medium rounded-full">
-              +{supervisor.tags.length - 3}
-            </span>
-          )}
+        <div className="mb-4">
+          <TagDisplay 
+            tags={supervisor.tags} 
+            maxDisplay={3} 
+            variant="compact" 
+          />
         </div>
 
         {/* Slot Progress */}

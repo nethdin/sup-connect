@@ -373,6 +373,7 @@ export default function RegisterForm() {
                 }}
                 placeholder="Search tags..."
                 error={errors.selectedTags}
+                showCategory={true}  // Supervisors see category badges
               />
             )}
           </div>

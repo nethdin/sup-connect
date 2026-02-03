@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { studentAPI, SupervisorProfile } from '@/app/lib/api-client';
+import { studentAPI } from '@/app/lib/api-client';
+import { Tag, SupervisorProfile } from '@/app/lib/types';
 import RecommendationList from '@/app/components/student/RecommendationList';
 import RouteGuard from '@/app/components/RouteGuard';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { useToast } from '@/app/context/ToastContext';
 
 interface RecommendationItem {
     supervisor: SupervisorProfile;
-    matchedTags: string[];
+    matchedTags: Tag[];
     matchCount: number;
     isFullMatch: boolean;
     score: number;
@@ -44,7 +45,8 @@ export default function RecommendationsPage() {
                 setHasProjectIdea(!!response.projectIdea);
             }
 
-            setRecommendations(response.recommendations);
+            // Cast to RecommendationItem[] - the API response structure matches
+            setRecommendations(response.recommendations as unknown as RecommendationItem[]);
             setStudentTags(response.studentTags || []);
             setFullMatchCount(response.fullMatchCount || 0);
             setPartialMatchCount(response.partialMatchCount || 0);

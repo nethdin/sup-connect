@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supervisorAPI, studentAPI, SupervisorProfile } from '@/app/lib/api-client';
 import RouteGuard from '@/app/components/RouteGuard';
+import TagDisplay from '@/app/components/common/TagDisplay';
 import { useToast } from '@/app/context/ToastContext';
 
 export default function SupervisorDetailPage() {
@@ -161,16 +162,7 @@ export default function SupervisorDetailPage() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">
                   Research Interests & Expertise
                 </h2>
-                <div className="flex flex-wrap gap-2">
-                  {supervisor.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200"
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
+                <TagDisplay tags={supervisor.tags} />
               </div>
 
               {/* Stats Grid */}

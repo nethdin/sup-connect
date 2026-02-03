@@ -48,7 +48,21 @@ export async function GET(request: NextRequest) {
             );
             if (profileData?.tags) {
                 try {
-                    profileData.tags = JSON.parse(profileData.tags);
+                    let tagIds: string[] = JSON.parse(profileData.tags);
+                    // Resolve tag IDs to names for profile form
+                    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+                    if (tagIds.some(isUuid)) {
+                        const placeholders = tagIds.map(() => '?').join(',');
+                        const rows = await query<{ id: string; name: string }[]>(
+                            `SELECT id, name FROM tags WHERE id IN (${placeholders})`,
+                            tagIds
+                        );
+                        const idToName = new Map(rows.map(r => [r.id, r.name]));
+                        profileData.tags = tagIds.map(id => idToName.get(id)).filter((n): n is string => !!n);
+                    } else {
+                        // Already names (backward compatibility)
+                        profileData.tags = tagIds;
+                    }
                 } catch {
                     profileData.tags = [];
                 }
@@ -155,8 +169,28 @@ export async function PUT(request: NextRequest) {
                     profValues.push(department);
                 }
                 if (tags !== undefined) {
+                    // Convert tag names to IDs for storage
+                    let tagIdsToStore: string[] = [];
+                    if (tags.length > 0) {
+                        const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+                        if (tags.some(isUuid)) {
+                            // Already IDs
+                            tagIdsToStore = tags;
+                        } else {
+                            // Convert names to IDs (case-insensitive)
+                            const placeholders = tags.map(() => 'LOWER(?) = LOWER(name)').join(' OR ');
+                            const rows = await query<{ id: string; name: string }[]>(
+                                `SELECT id, name FROM tags WHERE ${placeholders}`,
+                                tags
+                            );
+                            const nameToId = new Map(rows.map(r => [r.name.toLowerCase(), r.id]));
+                            tagIdsToStore = tags
+                                .map((name: string) => nameToId.get(name.toLowerCase()))
+                                .filter((id: string | undefined): id is string => id !== undefined);
+                        }
+                    }
                     profUpdates.push('tags = ?');
-                    profValues.push(JSON.stringify(tags));
+                    profValues.push(JSON.stringify(tagIdsToStore));
                 }
                 if (bio !== undefined) {
                     profUpdates.push('bio = ?');

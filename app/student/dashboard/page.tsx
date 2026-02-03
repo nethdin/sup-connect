@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Assignment, Meeting } from '@/app/lib/types';
 import MeetingList from '@/app/components/common/MeetingList';
+import TagDisplay from '@/app/components/common/TagDisplay';
 import Link from 'next/link';
 import { useToast } from '@/app/context/ToastContext';
 import { assignmentAPI, meetingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
@@ -161,15 +162,11 @@ export default function StudentDashboard() {
                       <p className="text-sm text-gray-600 mt-2">
                         {assignment.supervisor?.bio}
                       </p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {assignment.supervisor?.tags.map((tag) => (
-                          <span
-                            key={tag.id}
-                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
+                      <div className="mt-3">
+                        <TagDisplay 
+                          tags={assignment.supervisor?.tags || []} 
+                          variant="compact" 
+                        />
                       </div>
                     </div>
                     <Link

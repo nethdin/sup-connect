@@ -155,7 +155,7 @@ export interface SupervisorProfile {
   id: string;
   userId: string;
   department?: string;
-  tags: string[];
+  tags: { id: string; name: string; category: string | null }[];
   bio: string;
   yearsOfExperience: number;
   maxSlots: number;
@@ -281,7 +281,7 @@ export const studentAPI = {
   getMatches: async (sortBy: 'score' | 'match_count' | 'experience' | 'availability' = 'match_count'): Promise<{
     recommendations: Array<{
       supervisor: SupervisorProfile;
-      matchedTags: string[];
+      matchedTags: { id: string; name: string; category: string | null }[];
       matchCount: number;
       isFullMatch: boolean;
       score: number;
@@ -456,6 +456,7 @@ export const notificationAPI = {
 export interface Tag {
   id: string;
   name: string;
+  category: string | null;  // Category for role-based display (supervisors see domain expertise)
 }
 
 export const configAPI = {

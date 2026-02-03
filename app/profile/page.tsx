@@ -468,7 +468,7 @@ export default function ProfilePage() {
                                         {availableTags.map((tag) => (
                                             <label
                                                 key={tag.id}
-                                                className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition ${formData.tags.includes(tag.name)
+                                                className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium border transition inline-flex items-center gap-1 ${formData.tags.includes(tag.name)
                                                     ? 'bg-brand-600 text-white border-brand-600'
                                                     : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
                                                     }`}
@@ -487,6 +487,11 @@ export default function ProfilePage() {
                                                 />
                                                 {formData.tags.includes(tag.name) && <i className="fa-solid fa-check mr-1"></i>}
                                                 {tag.name}
+                                                {tag.category && (
+                                                    <span className={`text-xs ${formData.tags.includes(tag.name) ? 'text-brand-200' : 'text-gray-400'}`}>
+                                                        [{tag.category}]
+                                                    </span>
+                                                )}
                                             </label>
                                         ))}
                                     </div>

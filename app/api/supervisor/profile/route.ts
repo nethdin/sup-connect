@@ -35,12 +35,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse tags if stored as JSON string
-    let tags = profile.tags;
-    if (typeof tags === 'string') {
+    let tagIds: string[] = [];
+    if (typeof profile.tags === 'string') {
       try {
-        tags = JSON.parse(tags);
+        tagIds = JSON.parse(profile.tags);
       } catch {
-        tags = [];
+        tagIds = [];
+      }
+    } else if (Array.isArray(profile.tags)) {
+      tagIds = profile.tags;
+    }
+
+    // Resolve tag IDs to names for ProfileForm (which uses tag names for selection)
+    let tagNames: string[] = [];
+    if (tagIds.length > 0) {
+      const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      if (tagIds.some(isUuid)) {
+        const placeholders = tagIds.map(() => '?').join(',');
+        const rows = await query<{ id: string; name: string }[]>(
+          `SELECT id, name FROM tags WHERE id IN (${placeholders})`,
+          tagIds
+        );
+        const idToName = new Map(rows.map(r => [r.id, r.name]));
+        tagNames = tagIds.map(id => idToName.get(id)).filter((n): n is string => !!n);
+      } else {
+        // Already names (backward compatibility)
+        tagNames = tagIds;
       }
     }
 
@@ -49,7 +69,7 @@ export async function GET(request: NextRequest) {
         id: profile.id,
         userId: profile.user_id,
         department: profile.department,
-        tags: tags || [],
+        tags: tagNames,  // Return tag names for ProfileForm
         bio: profile.bio,
         maxSlots: profile.max_slots,
         currentSlots: profile.current_slots,

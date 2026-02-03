@@ -14,6 +14,7 @@ interface TagSelectorProps {
     showAIButton?: boolean;
     onAISuggest?: () => void;
     aiLoading?: boolean;
+    showCategory?: boolean;  // Show category badges (for supervisor registration)
 }
 
 export default function TagSelector({
@@ -27,6 +28,7 @@ export default function TagSelector({
     showAIButton = false,
     onAISuggest,
     aiLoading = false,
+    showCategory = false,
 }: TagSelectorProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -152,7 +154,7 @@ export default function TagSelector({
                                         type="button"
                                         onClick={() => !isDisabled && toggleTag(tag.name)}
                                         disabled={isDisabled as boolean}
-                                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${isSelected
+                                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition inline-flex items-center gap-1 ${isSelected
                                             ? 'bg-brand-600 text-white border-brand-600'
                                             : isDisabled
                                                 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
@@ -161,6 +163,11 @@ export default function TagSelector({
                                     >
                                         {isSelected && <i className="fa-solid fa-check mr-1"></i>}
                                         {tag.name}
+                                        {showCategory && tag.category && (
+                                            <span className={`text-xs ${isSelected ? 'text-brand-200' : 'text-gray-400'}`}>
+                                                [{tag.category}]
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}

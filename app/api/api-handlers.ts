@@ -1600,9 +1600,12 @@ export async function getStudentAssignment(request: NextRequest) {
       });
     }
 
-    // Resolve tag IDs to names
+    // Resolve tag IDs to full Tag objects (with id, name, category)
     const tagIds = parseTags(assignment.tags);
-    const resolvedTags = await resolveTagIds(tagIds);
+    const tagMap = await resolveTagIdsToMap(tagIds);
+    const resolvedTags = tagIds
+      .map(id => tagMap.get(id))
+      .filter((tag): tag is TagInfo => !!tag);
 
     const formattedAssignment = {
       id: assignment.id,

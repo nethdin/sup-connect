@@ -51,7 +51,7 @@ export default function SupervisorsPage() {
           s.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.bio.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.tags.some((tag) =>
-            tag.toLowerCase().includes(searchTerm.toLowerCase())
+            tag.name.toLowerCase().includes(searchTerm.toLowerCase())
           )
       );
     }
