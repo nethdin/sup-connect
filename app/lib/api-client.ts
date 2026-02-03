@@ -278,7 +278,7 @@ export const studentAPI = {
     });
   },
 
-  getMatches: async (sortBy: 'match_count' | 'experience' | 'availability' = 'match_count'): Promise<{
+  getMatches: async (sortBy: 'score' | 'match_count' | 'experience' | 'availability' = 'match_count'): Promise<{
     recommendations: Array<{
       supervisor: SupervisorProfile;
       matchedTags: string[];
