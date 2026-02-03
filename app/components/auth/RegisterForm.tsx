@@ -17,7 +17,7 @@ export default function RegisterForm() {
     department: '',
     registrationNo: '',
     selectedTags: [] as string[],
-    bio: '',
+    yearsOfExperience: '',
     maxSlots: '5',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,7 +97,8 @@ export default function RegisterForm() {
 
     if (currentStep === 4 && formData.role === 'SUPERVISOR') {
       if (formData.selectedTags.length === 0) newErrors.selectedTags = 'Select at least one tag';
-      if (!formData.bio) newErrors.bio = 'Bio is required';
+      const years = parseInt(formData.yearsOfExperience);
+      if (isNaN(years) || years < 0) newErrors.yearsOfExperience = 'Enter valid years of experience';
     }
 
     return newErrors;
@@ -141,7 +142,7 @@ export default function RegisterForm() {
       } else if (formData.role === 'SUPERVISOR') {
         payload.department = formData.department;
         payload.tags = formData.selectedTags;
-        payload.bio = formData.bio;
+        payload.yearsOfExperience = parseInt(formData.yearsOfExperience) || 0;
         payload.maxSlots = parseInt(formData.maxSlots);
       }
 
@@ -377,19 +378,21 @@ export default function RegisterForm() {
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-xs font-medium text-gray-700 mb-1">
-              Bio
+            <label htmlFor="yearsOfExperience" className="block text-xs font-medium text-gray-700 mb-1">
+              Years of Experience
             </label>
-            <textarea
-              id="bio"
-              name="bio"
-              value={formData.bio}
+            <input
+              type="number"
+              id="yearsOfExperience"
+              name="yearsOfExperience"
+              value={formData.yearsOfExperience}
               onChange={handleChange}
-              rows={3}
-              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none ${errors.bio ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="Brief description of your research interests..."
+              min="0"
+              max="50"
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="e.g., 5"
             />
-            {errors.bio && <p className="mt-0.5 text-xs text-red-600">{errors.bio}</p>}
+            {errors.yearsOfExperience && <p className="mt-0.5 text-xs text-red-600">{errors.yearsOfExperience}</p>}
           </div>
         </div>
       )}
