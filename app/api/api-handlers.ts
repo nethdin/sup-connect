@@ -114,6 +114,29 @@ async function resolveTagIds(tagIds: string[]): Promise<string[]> {
   return tagIds.map(id => idToName.get(id) || id).filter(name => name);
 }
 
+// Helper function to batch resolve tag IDs to a map with name and category
+// Used for efficient matching without N+1 queries
+interface TagInfo { id: string; name: string; category: string | null; }
+async function resolveTagIdsToMap(tagIds: string[]): Promise<Map<string, TagInfo>> {
+  const result = new Map<string, TagInfo>();
+  if (!tagIds || tagIds.length === 0) return result;
+
+  // Filter to only valid UUIDs
+  const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  const validIds = tagIds.filter(isUuid);
+  if (validIds.length === 0) return result;
+
+  const uniqueIds = [...new Set(validIds)];
+  const placeholders = uniqueIds.map(() => '?').join(',');
+  const rows = await query<{ id: string; name: string; category: string | null }[]>(
+    `SELECT id, name, category FROM tags WHERE id IN (${placeholders})`,
+    uniqueIds
+  );
+
+  rows.forEach(r => result.set(r.id, { id: r.id, name: r.name, category: r.category }));
+  return result;
+}
+
 // Helper function to convert tag names to tag IDs
 // Used when storing data to database
 export async function getTagIdsByNames(tagNames: string[]): Promise<string[]> {
@@ -719,10 +742,8 @@ export async function getRecommendationMatches(request: NextRequest) {
       });
     }
 
-    // Resolve project tag IDs to names
+    // Parse student's project tag IDs
     const projectTagIds: string[] = parseTags(studentIdea.tags);
-    const projectTags = await resolveTagIds(projectTagIds);
-    const normalizedProjectTags = projectTags.map(k => k.toLowerCase().trim());
 
     // Get available supervisors
     const supervisors = await query<any[]>(
@@ -739,24 +760,38 @@ export async function getRecommendationMatches(request: NextRequest) {
       `
     );
 
-    // Calculate matches using criteria-based approach
-    const matchedSupervisors = await Promise.all(supervisors.map(async supervisor => {
-      // Resolve supervisor tag IDs to names
-      const tagIds = parseTags(supervisor.tags);
-      const tags = await resolveTagIds(tagIds);
-      const normalizedTags = tags.map((t: string) => t.toLowerCase().trim());
+    // OPTIMIZATION: Batch resolve ALL tag IDs in ONE query (fixes N+1 problem)
+    const allTagIds = [
+      ...projectTagIds,
+      ...supervisors.flatMap(s => parseTags(s.tags))
+    ];
+    const tagMap = await resolveTagIdsToMap(allTagIds);
 
-      // Count matching tags
-      const matchedTags = normalizedProjectTags.filter(projectTag =>
-        normalizedTags.some((supTag: string) =>
-          supTag === projectTag || // Exact match
-          supTag.includes(projectTag) || // Tag contains project tag
-          projectTag.includes(supTag) // Project tag contains supervisor tag
-        )
+    // Resolve project tags for display (names only for students)
+    const projectTags = projectTagIds
+      .map(id => tagMap.get(id)?.name)
+      .filter((name): name is string => !!name);
+
+    // Calculate matches using ID-BASED COMPARISON (fixes false positives)
+    const matchedSupervisors = supervisors.map(supervisor => {
+      const supervisorTagIds = parseTags(supervisor.tags);
+      
+      // Resolve supervisor tags with category info
+      const resolvedTags = supervisorTagIds
+        .map(id => tagMap.get(id))
+        .filter((t): t is TagInfo => !!t);
+      const supervisorTagNames = resolvedTags.map(t => t.name);
+
+      // Match by ID (exact match only - no more Java/JavaScript problem)
+      const matchedTagIds = projectTagIds.filter(id => 
+        supervisorTagIds.includes(id)
       );
+      const matchedTagNames = matchedTagIds
+        .map(id => tagMap.get(id)?.name)
+        .filter((name): name is string => !!name);
 
-      const matchCount = matchedTags.length;
-      const isFullMatch = matchCount === normalizedProjectTags.length && normalizedProjectTags.length > 0;
+      const matchCount = matchedTagIds.length;
+      const isFullMatch = matchCount === projectTagIds.length && projectTagIds.length > 0;
       const availableSlots = supervisor.max_slots - supervisor.current_slots;
       const yearsOfExperience = supervisor.years_of_experience || 0;
 
@@ -768,7 +803,7 @@ export async function getRecommendationMatches(request: NextRequest) {
           id: supervisor.id,
           userId: supervisor.user_id,
           department: supervisor.department,
-          tags, // Already resolved to names
+          tags: supervisorTagNames,
           bio: supervisor.bio,
           yearsOfExperience,
           maxSlots: supervisor.max_slots,
@@ -781,14 +816,14 @@ export async function getRecommendationMatches(request: NextRequest) {
             createdAt: new Date(),
           },
         },
-        matchedTags,
+        matchedTags: matchedTagNames,
         matchCount,
         isFullMatch,
         availableSlots,
         yearsOfExperience,
         score,
       };
-    }));
+    });
 
     // Filter: at least 1 match required
     const withMatches = matchedSupervisors.filter(s => s.matchCount > 0);
