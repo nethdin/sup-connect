@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/app/context/ToastContext';
 import { messageAPI, Conversation, Message } from '@/app/lib/api-client';
 
-export default function MessagesPage() {
+function MessagesContent() {
     const router = useRouter();
     const { addToast } = useToast();
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -281,5 +281,23 @@ export default function MessagesPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-gray-50">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <p className="mt-4 text-gray-600">Loading messages...</p>
+                    </div>
+                </div>
+            </main>
+        }>
+            <MessagesContent />
+        </Suspense>
     );
 }
