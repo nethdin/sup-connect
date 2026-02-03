@@ -5,17 +5,15 @@ import Link from 'next/link';
 import { UserRole } from '@/app/lib/types';
 
 export default function RegisterForm() {
-  const [step, setStep] = useState(1); // Step 1: Basic Info, Step 2: Role-Specific Info
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     name: '',
     role: 'STUDENT' as UserRole,
-    // Student-specific fields
     department: '',
     registrationNo: '',
-    // Supervisor-specific fields
     tags: '',
     bio: '',
     maxSlots: '5',
@@ -24,6 +22,9 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+
+  // Calculate total steps based on role
+  const totalSteps = formData.role === 'STUDENT' ? 3 : 4;
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -50,60 +51,56 @@ export default function RegisterForm() {
     }
   };
 
-  const validate = () => {
+  const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {};
 
-    // Step 1 validation
-    if (step === 1) {
+    if (currentStep === 1) {
       if (!formData.name) newErrors.name = 'Name is required';
       if (!formData.email) newErrors.email = 'Email is required';
-      else if (!formData.email.includes('@'))
-        newErrors.email = 'Invalid email format';
-      if (!formData.password) newErrors.password = 'Password is required';
-      else if (formData.password.length < 8)
-        newErrors.password = 'Password must be at least 8 characters';
-      if (formData.password !== formData.confirmPassword)
-        newErrors.confirmPassword = 'Passwords do not match';
+      else if (!formData.email.includes('@')) newErrors.email = 'Invalid email format';
     }
 
-    // Step 2 validation
-    if (step === 2) {
-      // Student-specific validation
-      if (formData.role === 'STUDENT') {
-        if (!formData.department) newErrors.department = 'Department is required';
-        if (!formData.registrationNo) newErrors.registrationNo = 'Registration number is required';
-      }
+    if (currentStep === 2) {
+      if (!formData.password) newErrors.password = 'Password is required';
+      else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    }
 
-      // Supervisor-specific validation
-      if (formData.role === 'SUPERVISOR') {
-        if (!formData.department) newErrors.department = 'Department is required';
-        if (!formData.tags) newErrors.tags = 'Tags are required';
-        if (!formData.bio) newErrors.bio = 'Bio is required';
-        if (!formData.maxSlots || parseInt(formData.maxSlots) < 1)
-          newErrors.maxSlots = 'Max slots must be at least 1';
+    if (currentStep === 3) {
+      if (!formData.department) newErrors.department = 'Department is required';
+
+      if (formData.role === 'STUDENT') {
+        if (!formData.registrationNo) newErrors.registrationNo = 'Registration number is required';
+      } else {
+        if (!formData.maxSlots || parseInt(formData.maxSlots) < 1) newErrors.maxSlots = 'Max slots must be at least 1';
       }
+    }
+
+    if (currentStep === 4 && formData.role === 'SUPERVISOR') {
+      if (!formData.tags) newErrors.tags = 'Tags are required';
+      if (!formData.bio) newErrors.bio = 'Bio is required';
     }
 
     return newErrors;
   };
 
   const handleNext = () => {
-    const newErrors = validate();
+    const newErrors = validateStep(step);
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setStep(2);
+    setStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
-    setStep(1);
+    setStep((prev) => prev - 1);
     setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors = validate();
+    const newErrors = validateStep(step);
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -119,7 +116,6 @@ export default function RegisterForm() {
         role: formData.role,
       };
 
-      // Add role-specific fields
       if (formData.role === 'STUDENT') {
         payload.department = formData.department;
         payload.registrationNo = formData.registrationNo;
@@ -144,16 +140,12 @@ export default function RegisterForm() {
 
       const data = await response.json();
 
-      // Store token in localStorage and cookie
       if (data.token) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Set cookie for server-side middleware
         document.cookie = `authToken=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
       }
 
-      // Redirect based on role
       if (data.user.role === 'SUPERVISOR') {
         window.location.href = '/supervisor/dashboard';
       } else if (data.user.role === 'STUDENT') {
@@ -169,36 +161,29 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Progress Indicator */}
-      <div className="flex items-center justify-center mb-6">
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-            1
-          </div>
-          <div className={`h-1 w-12 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-            2
-          </div>
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4 min-h-[280px]">
+      {/* Step Indicators */}
+      <div className="flex items-center justify-center space-x-2 mb-4">
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${step > i ? 'w-6 bg-blue-600' : step === i + 1 ? 'w-6 bg-blue-600' : 'w-2 bg-gray-200'
+              }`}
+          />
+        ))}
       </div>
 
       {errors.submit && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
           {errors.submit}
         </div>
       )}
 
-      {/* Step 1: Basic Information */}
+      {/* Step 1: Identity */}
       {step === 1 && (
-        <>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-
-          {/* Name */}
+        <div className="space-y-3 animate-fadeIn">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1">
               Full Name
             </label>
             <input
@@ -207,18 +192,15 @@ export default function RegisterForm() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
+              autoFocus
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="John Doe"
             />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
+            {errors.name && <p className="mt-0.5 text-xs text-red-600">{errors.name}</p>}
           </div>
 
-          {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1">
               Email Address
             </label>
             <input
@@ -227,18 +209,14 @@ export default function RegisterForm() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="you@example.com"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
+            {errors.email && <p className="mt-0.5 text-xs text-red-600">{errors.email}</p>}
           </div>
 
-          {/* Role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="role" className="block text-xs font-medium text-gray-700 mb-1">
               I am a...
             </label>
             <select
@@ -246,19 +224,20 @@ export default function RegisterForm() {
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition"
             >
               <option value="STUDENT">Student</option>
               <option value="SUPERVISOR">Supervisor</option>
             </select>
           </div>
+        </div>
+      )}
 
-          {/* Password */}
+      {/* Step 2: Security */}
+      {step === 2 && (
+        <div className="space-y-3 animate-fadeIn">
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
@@ -267,21 +246,15 @@ export default function RegisterForm() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
+              autoFocus
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="••••••••"
             />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
+            {errors.password && <p className="mt-0.5 text-xs text-red-600">{errors.password}</p>}
           </div>
 
-          {/* Confirm Password */}
           <div>
-            <label
-              htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 mb-1">
               Confirm Password
             </label>
             <input
@@ -290,36 +263,19 @@ export default function RegisterForm() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                }`}
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="••••••••"
             />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-            )}
+            {errors.confirmPassword && <p className="mt-0.5 text-xs text-red-600">{errors.confirmPassword}</p>}
           </div>
-
-          {/* Next Button */}
-          <button
-            type="button"
-            onClick={handleNext}
-            className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
-          >
-            Next
-          </button>
-        </>
+        </div>
       )}
 
-      {/* Step 2: Role-Specific Information */}
-      {step === 2 && (
-        <>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {formData.role === 'STUDENT' ? 'Student Information' : 'Supervisor Profile'}
-          </h2>
-
-          {/* Department (Common for both) */}
+      {/* Step 3: Academic Details */}
+      {step === 3 && (
+        <div className="space-y-3 animate-fadeIn">
           <div>
-            <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="department" className="block text-xs font-medium text-gray-700 mb-1">
               Department
             </label>
             <select
@@ -328,137 +284,122 @@ export default function RegisterForm() {
               value={formData.department}
               onChange={handleChange}
               disabled={loadingDepartments}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.department ? 'border-red-500' : 'border-gray-300'
-                }`}
+              autoFocus
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.department ? 'border-red-500' : 'border-gray-300'}`}
             >
               <option value="">{loadingDepartments ? 'Loading...' : 'Select Department'}</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.name}>{dept.name}</option>
               ))}
             </select>
-            {errors.department && (
-              <p className="mt-1 text-sm text-red-600">{errors.department}</p>
-            )}
+            {errors.department && <p className="mt-0.5 text-xs text-red-600">{errors.department}</p>}
           </div>
 
-          {/* Student-specific fields */}
-          {formData.role === 'STUDENT' && (
-            <>
-              {/* Registration Number */}
-              <div>
-                <label htmlFor="registrationNo" className="block text-sm font-medium text-gray-700">
-                  Registration Number
-                </label>
-                <input
-                  type="text"
-                  id="registrationNo"
-                  name="registrationNo"
-                  value={formData.registrationNo}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.registrationNo ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="2021/CS/001"
-                />
-                {errors.registrationNo && (
-                  <p className="mt-1 text-sm text-red-600">{errors.registrationNo}</p>
-                )}
-              </div>
-            </>
+          {formData.role === 'STUDENT' ? (
+            <div>
+              <label htmlFor="registrationNo" className="block text-xs font-medium text-gray-700 mb-1">
+                Registration Number
+              </label>
+              <input
+                type="text"
+                id="registrationNo"
+                name="registrationNo"
+                value={formData.registrationNo}
+                onChange={handleChange}
+                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.registrationNo ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="2021/CS/001"
+              />
+              {errors.registrationNo && <p className="mt-0.5 text-xs text-red-600">{errors.registrationNo}</p>}
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="maxSlots" className="block text-xs font-medium text-gray-700 mb-1">
+                Max Students
+              </label>
+              <input
+                type="number"
+                id="maxSlots"
+                name="maxSlots"
+                value={formData.maxSlots}
+                onChange={handleChange}
+                min="1"
+                max="10"
+                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.maxSlots ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {errors.maxSlots && <p className="mt-0.5 text-xs text-red-600">{errors.maxSlots}</p>}
+            </div>
           )}
-
-          {/* Supervisor-specific fields */}
-          {formData.role === 'SUPERVISOR' && (
-            <>
-              {/* Tags */}
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                  Keywords/Tags
-                </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.tags ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="e.g., ML, Python, CV"
-                />
-                {errors.tags && (
-                  <p className="mt-1 text-sm text-red-600">{errors.tags}</p>
-                )}
-              </div>
-
-              {/* Bio */}
-              <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
-                  Bio
-                </label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  rows={3}
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none ${errors.bio ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="Your expertise and research areas..."
-                />
-                {errors.bio && (
-                  <p className="mt-1 text-sm text-red-600">{errors.bio}</p>
-                )}
-              </div>
-
-              {/* Max Slots */}
-              <div>
-                <label htmlFor="maxSlots" className="block text-sm font-medium text-gray-700">
-                  Maximum Students
-                </label>
-                <input
-                  type="number"
-                  id="maxSlots"
-                  name="maxSlots"
-                  value={formData.maxSlots}
-                  onChange={handleChange}
-                  min="1"
-                  max="10"
-                  className={`mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.maxSlots ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                />
-                {errors.maxSlots && (
-                  <p className="mt-1 text-sm text-red-600">{errors.maxSlots}</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition"
-            >
-              Back
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
-            >
-              {isLoading ? 'Creating...' : 'Create Account'}
-            </button>
-          </div>
-        </>
+        </div>
       )}
 
-      {/* Login Link */}
-      <p className="text-center text-gray-600">
-        Already have an account?{' '}
-        <Link href="/login" className="text-blue-600 hover:underline font-medium">
-          Log in
-        </Link>
-      </p>
+      {/* Step 4: Supervisor Profile (Only for Supervisor) */}
+      {step === 4 && formData.role === 'SUPERVISOR' && (
+        <div className="space-y-3 animate-fadeIn">
+          <div>
+            <label htmlFor="tags" className="block text-xs font-medium text-gray-700 mb-1">
+              Keywords/Tags
+            </label>
+            <input
+              type="text"
+              id="tags"
+              name="tags"
+              value={formData.tags}
+              onChange={handleChange}
+              autoFocus
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.tags ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="e.g., Machine Learning, IoT"
+            />
+            {errors.tags && <p className="mt-0.5 text-xs text-red-600">{errors.tags}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="bio" className="block text-xs font-medium text-gray-700 mb-1">
+              Bio
+            </label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              rows={3}
+              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none ${errors.bio ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Brief description of your research interests..."
+            />
+            {errors.bio && <p className="mt-0.5 text-xs text-red-600">{errors.bio}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Buttons */}
+      <div className="flex gap-3 pt-2">
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition"
+          >
+            Back
+          </button>
+        )}
+
+        {step < totalSteps ? (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
+          >
+            Next
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+          >
+            {isLoading ? 'Creating...' : 'Create Account'}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
