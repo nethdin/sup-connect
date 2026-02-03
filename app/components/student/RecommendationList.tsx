@@ -12,8 +12,8 @@ interface RecommendationItem {
 
 interface RecommendationListProps {
   recommendations: RecommendationItem[];
-  sortBy: 'match_count' | 'experience' | 'availability';
-  onSortChange: (sort: 'match_count' | 'experience' | 'availability') => void;
+  sortBy: 'score' | 'match_count' | 'experience' | 'availability';
+  onSortChange: (sort: 'score' | 'match_count' | 'experience' | 'availability') => void;
   onRequest?: (supervisorId: string) => void;
   fullMatchCount?: number;
   partialMatchCount?: number;
@@ -65,6 +65,7 @@ export default function RecommendationList({
           onChange={(e) => onSortChange(e.target.value as any)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
         >
+          <option value="score">Sort by Score</option>
           <option value="match_count">Sort by Match Count</option>
           <option value="experience">Sort by Experience</option>
           <option value="availability">Sort by Availability</option>
