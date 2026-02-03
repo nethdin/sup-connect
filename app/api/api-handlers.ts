@@ -378,15 +378,21 @@ export async function getAllSupervisors(request: NextRequest) {
 
     const rows = await query<any[]>(sql, params);
 
-    // Resolve tag IDs to names for each supervisor
-    const supervisors = await Promise.all(rows.map(async row => {
+    // Batch resolve ALL tag IDs in ONE query (optimization)
+    const allTagIds = rows.flatMap(row => parseTags(row.tags));
+    const tagMap = await resolveTagIdsToMap(allTagIds);
+
+    // Map supervisors with resolved tags
+    const supervisors = rows.map(row => {
       const tagIds = parseTags(row.tags);
-      const resolvedTags = await resolveTagIds(tagIds);
+      const resolvedTags = tagIds
+        .map(id => tagMap.get(id))
+        .filter((t): t is TagInfo => !!t);
       return {
         id: row.id,
         userId: row.user_id,
         department: row.department,
-        tags: resolvedTags,
+        tags: resolvedTags,  // Full Tag objects with id, name, category
         bio: row.bio,
         yearsOfExperience: row.years_of_experience || 0,
         maxSlots: row.max_slots,
@@ -399,7 +405,7 @@ export async function getAllSupervisors(request: NextRequest) {
           role: row.user_role,
         },
       };
-    }));
+    });
 
     return NextResponse.json({
       supervisors,
@@ -438,15 +444,18 @@ export async function getSupervisorById(id: string) {
       );
     }
 
-    // Resolve tag IDs to names
+    // Resolve tag IDs to full Tag objects
     const tagIds = parseTags(row.tags);
-    const resolvedTags = await resolveTagIds(tagIds);
+    const tagMap = await resolveTagIdsToMap(tagIds);
+    const resolvedTags = tagIds
+      .map(id => tagMap.get(id))
+      .filter((t): t is TagInfo => !!t);
 
     const supervisor = {
       id: row.id,
       userId: row.user_id,
       department: row.department,
-      tags: resolvedTags,
+      tags: resolvedTags,  // Full Tag objects with id, name, category
       bio: row.bio,
       yearsOfExperience: row.years_of_experience || 0,
       maxSlots: row.max_slots,
@@ -775,7 +784,7 @@ export async function getRecommendationMatches(request: NextRequest) {
     // Calculate matches using ID-BASED COMPARISON (fixes false positives)
     const matchedSupervisors = supervisors.map(supervisor => {
       const supervisorTagIds = parseTags(supervisor.tags);
-      
+
       // Resolve supervisor tags with category info
       const resolvedTags = supervisorTagIds
         .map(id => tagMap.get(id))
@@ -783,7 +792,7 @@ export async function getRecommendationMatches(request: NextRequest) {
       const supervisorTagNames = resolvedTags.map(t => t.name);
 
       // Match by ID (exact match only - no more Java/JavaScript problem)
-      const matchedTagIds = projectTagIds.filter(id => 
+      const matchedTagIds = projectTagIds.filter(id =>
         supervisorTagIds.includes(id)
       );
       const matchedTagNames = matchedTagIds
@@ -803,7 +812,7 @@ export async function getRecommendationMatches(request: NextRequest) {
           id: supervisor.id,
           userId: supervisor.user_id,
           department: supervisor.department,
-          tags: supervisorTagNames,
+          tags: resolvedTags,  // Full Tag objects with id, name, category
           bio: supervisor.bio,
           yearsOfExperience,
           maxSlots: supervisor.max_slots,
@@ -816,7 +825,9 @@ export async function getRecommendationMatches(request: NextRequest) {
             createdAt: new Date(),
           },
         },
-        matchedTags: matchedTagNames,
+        matchedTags: matchedTagIds
+          .map(id => tagMap.get(id))
+          .filter((t): t is TagInfo => !!t),  // Full Tag objects
         matchCount,
         isFullMatch,
         availableSlots,
