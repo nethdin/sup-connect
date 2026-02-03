@@ -162,12 +162,12 @@ export default function SupervisorDetailPage() {
                   Research Interests & Expertise
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {supervisor.tags.map((tag, index) => (
+                  {supervisor.tags.map((tag) => (
                     <span
-                      key={index}
+                      key={tag.id}
                       className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200"
                     >
-                      {tag}
+                      {tag.name}
                     </span>
                   ))}
                 </div>

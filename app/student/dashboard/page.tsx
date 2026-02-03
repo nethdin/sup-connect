@@ -162,12 +162,12 @@ export default function StudentDashboard() {
                         {assignment.supervisor?.bio}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {assignment.supervisor?.tags.map((tag, index) => (
+                        {assignment.supervisor?.tags.map((tag) => (
                           <span
-                            key={index}
+                            key={tag.id}
                             className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
                           >
-                            {tag}
+                            {tag.name}
                           </span>
                         ))}
                       </div>

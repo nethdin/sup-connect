@@ -46,10 +46,10 @@ export default function SupervisorCard({
         <div className="flex flex-wrap gap-2 mb-4">
           {supervisor.tags.slice(0, 3).map((tag) => (
             <span
-              key={tag}
+              key={tag.id}
               className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full"
             >
-              {tag}
+              {tag.name}
             </span>
           ))}
           {supervisor.tags.length > 3 && (
@@ -70,10 +70,10 @@ export default function SupervisorCard({
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full transition ${slotPercentage < 80
-                  ? 'bg-green-500'
-                  : slotPercentage < 100
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
+                ? 'bg-green-500'
+                : slotPercentage < 100
+                  ? 'bg-yellow-500'
+                  : 'bg-red-500'
                 }`}
               style={{ width: `${Math.min(slotPercentage, 100)}%` }}
             />
