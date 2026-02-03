@@ -802,6 +802,8 @@ export async function getRecommendationMatches(request: NextRequest) {
     // Sort function based on sortBy parameter
     const sortFn = (a: typeof matchedSupervisors[0], b: typeof matchedSupervisors[0]) => {
       switch (sortBy) {
+        case 'score':
+          return b.score - a.score || b.matchCount - a.matchCount;
         case 'experience':
           return b.yearsOfExperience - a.yearsOfExperience || b.matchCount - a.matchCount;
         case 'availability':
