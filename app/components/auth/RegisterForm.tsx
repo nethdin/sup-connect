@@ -14,7 +14,7 @@ export default function RegisterForm() {
     role: 'STUDENT' as UserRole,
     department: '',
     registrationNo: '',
-    tags: '',
+    selectedTags: [] as string[],
     bio: '',
     maxSlots: '5',
   });
@@ -22,6 +22,8 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [availableTags, setAvailableTags] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [loadingTags, setLoadingTags] = useState(true);
 
   // Calculate total steps based on role
   const totalSteps = formData.role === 'STUDENT' ? 3 : 4;
@@ -41,6 +43,21 @@ export default function RegisterForm() {
     fetchDepartments();
   }, []);
 
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/tags');
+        const data = await response.json();
+        setAvailableTags(data.tags || []);
+      } catch (err) {
+        console.error('Failed to fetch tags:', err);
+      } finally {
+        setLoadingTags(false);
+      }
+    };
+    fetchTags();
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -48,6 +65,19 @@ export default function RegisterForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleTagToggle = (tagId: string) => {
+    setFormData((prev) => {
+      const isSelected = prev.selectedTags.includes(tagId);
+      const newTags = isSelected
+        ? prev.selectedTags.filter(id => id !== tagId)
+        : [...prev.selectedTags, tagId];
+      return { ...prev, selectedTags: newTags };
+    });
+    if (errors.selectedTags) {
+      setErrors((prev) => ({ ...prev, selectedTags: '' }));
     }
   };
 
@@ -77,7 +107,7 @@ export default function RegisterForm() {
     }
 
     if (currentStep === 4 && formData.role === 'SUPERVISOR') {
-      if (!formData.tags) newErrors.tags = 'Tags are required';
+      if (formData.selectedTags.length === 0) newErrors.selectedTags = 'Select at least one tag';
       if (!formData.bio) newErrors.bio = 'Bio is required';
     }
 
@@ -121,7 +151,7 @@ export default function RegisterForm() {
         payload.registrationNo = formData.registrationNo;
       } else if (formData.role === 'SUPERVISOR') {
         payload.department = formData.department;
-        payload.tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        payload.tags = formData.selectedTags;
         payload.bio = formData.bio;
         payload.maxSlots = parseInt(formData.maxSlots);
       }
@@ -336,20 +366,32 @@ export default function RegisterForm() {
       {step === 4 && formData.role === 'SUPERVISOR' && (
         <div className="space-y-3 animate-fadeIn">
           <div>
-            <label htmlFor="tags" className="block text-xs font-medium text-gray-700 mb-1">
-              Keywords/Tags
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              Research Areas / Tags
+              <span className="text-gray-400 font-normal ml-1">({formData.selectedTags.length} selected)</span>
             </label>
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              autoFocus
-              className={`block w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.tags ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="e.g., Machine Learning, IoT"
-            />
-            {errors.tags && <p className="mt-0.5 text-xs text-red-600">{errors.tags}</p>}
+            {loadingTags ? (
+              <p className="text-sm text-gray-500">Loading tags...</p>
+            ) : (
+              <div className={`max-h-32 overflow-y-auto border rounded-lg p-2 ${errors.selectedTags ? 'border-red-500' : 'border-gray-300'}`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => handleTagToggle(tag.id)}
+                      className={`px-2 py-1 text-xs font-medium rounded-full transition-all ${formData.selectedTags.includes(tag.id)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {errors.selectedTags && <p className="mt-0.5 text-xs text-red-600">{errors.selectedTags}</p>}
           </div>
 
           <div>
