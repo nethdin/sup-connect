@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/app/context/ToastContext';
 import { messageAPI, Conversation, Message } from '@/app/lib/api-client';
 
@@ -17,6 +17,8 @@ export default function MessagesPage() {
     const [currentUserId, setCurrentUserId] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const searchParams = useSearchParams();
+
     useEffect(() => {
         // Get current user ID from localStorage
         const userData = localStorage.getItem('user');
@@ -26,6 +28,40 @@ export default function MessagesPage() {
         }
         fetchConversations();
     }, []);
+
+    // Handle deep linking for starting a conversation
+    useEffect(() => {
+        if (!loading && conversations) {
+            const userId = searchParams.get('userId');
+            const userName = searchParams.get('userName');
+            const userEmail = searchParams.get('userEmail');
+            const userRole = searchParams.get('userRole');
+
+            if (userId) {
+                // Check if we already have a conversation with this user
+                const existingConv = conversations.find(c => c.user_id === userId);
+
+                if (existingConv) {
+                    selectConversation(existingConv);
+                } else if (userName) {
+                    // Create an optimistic temporary conversation
+                    const newConv: Conversation = {
+                        user_id: userId,
+                        user_name: userName,
+                        user_email: userEmail || '',
+                        user_role: userRole || 'USER',
+                        last_message: '',
+                        last_message_at: new Date().toISOString(),
+                        unread_count: 0
+                    };
+
+                    // Don't add to list yet, just select it
+                    setSelectedConversation(newConv);
+                    setMessages([]);
+                }
+            }
+        }
+    }, [loading, conversations, searchParams]);
 
     useEffect(() => {
         scrollToBottom();
@@ -194,8 +230,8 @@ export default function MessagesPage() {
                                         >
                                             <div
                                                 className={`max-w-[70%] rounded-xl px-4 py-2 ${message.sender_id === currentUserId
-                                                        ? 'bg-brand-600 text-white'
-                                                        : 'bg-gray-100 text-gray-900'
+                                                    ? 'bg-brand-600 text-white'
+                                                    : 'bg-gray-100 text-gray-900'
                                                     }`}
                                             >
                                                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
