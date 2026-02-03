@@ -21,12 +21,19 @@ export interface StudentProfile {
   user?: User;
 }
 
+// Tag with category for role-based display
+export interface Tag {
+  id: string;
+  name: string;
+  category: string | null;
+}
+
 // Supervisor Profile
 export interface SupervisorProfile {
   id: string;
   userId: string;
   department?: string;
-  tags: string[];
+  tags: Tag[];  // Rich tag objects with name + category
   bio: string;
   yearsOfExperience: number;
   maxSlots: number;
