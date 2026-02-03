@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserRole } from '@/app/lib/types';
+import TagSelector from '@/app/components/common/TagSelector';
+import { Tag } from '@/app/lib/api-client';
 
 export default function RegisterForm() {
   const [step, setStep] = useState(1);
@@ -22,7 +24,7 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
-  const [availableTags, setAvailableTags] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [loadingTags, setLoadingTags] = useState(true);
 
   // Calculate total steps based on role
@@ -65,19 +67,6 @@ export default function RegisterForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleTagToggle = (tagId: string) => {
-    setFormData((prev) => {
-      const isSelected = prev.selectedTags.includes(tagId);
-      const newTags = isSelected
-        ? prev.selectedTags.filter(id => id !== tagId)
-        : [...prev.selectedTags, tagId];
-      return { ...prev, selectedTags: newTags };
-    });
-    if (errors.selectedTags) {
-      setErrors((prev) => ({ ...prev, selectedTags: '' }));
     }
   };
 
@@ -368,30 +357,23 @@ export default function RegisterForm() {
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-2">
               Research Areas / Tags
-              <span className="text-gray-400 font-normal ml-1">({formData.selectedTags.length} selected)</span>
             </label>
             {loadingTags ? (
               <p className="text-sm text-gray-500">Loading tags...</p>
             ) : (
-              <div className={`max-h-32 overflow-y-auto border rounded-lg p-2 ${errors.selectedTags ? 'border-red-500' : 'border-gray-300'}`}>
-                <div className="flex flex-wrap gap-1.5">
-                  {availableTags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => handleTagToggle(tag.id)}
-                      className={`px-2 py-1 text-xs font-medium rounded-full transition-all ${formData.selectedTags.includes(tag.id)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                    >
-                      {tag.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <TagSelector
+                availableTags={availableTags}
+                selectedTags={formData.selectedTags}
+                onTagsChange={(tags) => {
+                  setFormData(prev => ({ ...prev, selectedTags: tags }));
+                  if (errors.selectedTags) {
+                    setErrors(prev => ({ ...prev, selectedTags: '' }));
+                  }
+                }}
+                placeholder="Search tags..."
+                error={errors.selectedTags}
+              />
             )}
-            {errors.selectedTags && <p className="mt-0.5 text-xs text-red-600">{errors.selectedTags}</p>}
           </div>
 
           <div>
