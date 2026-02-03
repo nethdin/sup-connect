@@ -1,10 +1,10 @@
 'use client';
 
-import { SupervisorProfile } from '@/app/lib/api-client';
+import { SupervisorProfile, Tag } from '@/app/lib/types';
 
 interface RecommendationItem {
   supervisor: SupervisorProfile;
-  matchedTags: string[];
+  matchedTags: Tag[];  // Rich Tag objects
   matchCount: number;
   isFullMatch: boolean;
   score: number;
@@ -106,15 +106,15 @@ export default function RecommendationList({
             </div>
           </div>
 
-          {/* Matched Tags */}
+          {/* Matched Tags - Student view: names only (no categories) */}
           {rec.matchedTags.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
               {rec.matchedTags.map((tag) => (
                 <span
-                  key={tag}
+                  key={tag.id}
                   className="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded"
                 >
-                  ✓ {tag}
+                  ✓ {tag.name}
                 </span>
               ))}
             </div>
