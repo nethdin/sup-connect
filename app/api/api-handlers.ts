@@ -139,7 +139,7 @@ export async function getTagIdsByNames(tagNames: string[]): Promise<string[]> {
 export async function registerUser(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, role, department, registrationNo, researchInterests, preferredFields, tags, bio, maxSlots } = body;
+    const { email, password, name, role, department, registrationNo, researchInterests, preferredFields, tags, bio, maxSlots, yearsOfExperience } = body;
 
     // Validation
     if (!email || !password || !name || !role) {
@@ -157,9 +157,9 @@ export async function registerUser(request: NextRequest) {
       );
     }
 
-    if (role === 'SUPERVISOR' && (!department || !tags || !bio || !maxSlots)) {
+    if (role === 'SUPERVISOR' && (!department || !tags || !maxSlots)) {
       return NextResponse.json(
-        { error: 'Department, tags, bio, and max slots are required for supervisors' },
+        { error: 'Department, tags, and max slots are required for supervisors' },
         { status: 400 }
       );
     }
@@ -223,8 +223,8 @@ export async function registerUser(request: NextRequest) {
       // Convert tag names to tag IDs for storage
       const tagIds = await getTagIdsByNames(tags || []);
       await query(
-        'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [supervisorProfileId, userId, department, JSON.stringify(tagIds), bio, maxSlots, 0]
+        'INSERT INTO supervisor_profiles (id, user_id, department, tags, bio, years_of_experience, max_slots, current_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [supervisorProfileId, userId, department, JSON.stringify(tagIds), bio || '', yearsOfExperience || 0, maxSlots, 0]
       );
     }
 
