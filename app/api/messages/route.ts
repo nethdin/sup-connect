@@ -26,39 +26,39 @@ export async function GET(request: NextRequest) {
         }
 
         // Get all unique conversations (users the authenticated user has messaged with)
+        // Fixed: Use a cleaner query that is compatible with ONLY_FULL_GROUP_BY
         const conversations = await query<any[]>(`
             SELECT 
-                CASE 
-                    WHEN m.sender_id = ? THEN m.receiver_id 
-                    ELSE m.sender_id 
-                END as user_id,
-                MAX(u.name) as user_name,
-                MAX(u.email) as user_email,
-                MAX(u.role) as user_role,
+                u.id as user_id,
+                u.name as user_name,
+                u.email as user_email,
+                u.role as user_role,
+                last_msg.content as last_message,
+                last_msg.created_at as last_message_at,
                 (
-                    SELECT content FROM messages m2
-                    WHERE (m2.sender_id = ? AND m2.receiver_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END) 
-                       OR (m2.sender_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END AND m2.receiver_id = ?)
-                    ORDER BY m2.created_at DESC LIMIT 1
-                ) as last_message,
-                MAX(m.created_at) as last_message_at,
-                (
-                    SELECT COUNT(*) FROM messages m3
-                    WHERE m3.sender_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END 
-                      AND m3.receiver_id = ? AND m3.is_read = 0
+                    SELECT COUNT(*) 
+                    FROM messages m3 
+                    WHERE m3.receiver_id = ? AND m3.sender_id = u.id AND m3.is_read = 0
                 ) as unread_count
-            FROM messages m
-            JOIN users u ON u.id = CASE 
-                WHEN m.sender_id = ? THEN m.receiver_id 
-                ELSE m.sender_id 
-            END
-            WHERE (m.sender_id = ? OR m.receiver_id = ?)
-              AND u.deleted_at IS NULL
-            GROUP BY CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END
+            FROM users u
+            JOIN (
+                SELECT 
+                    CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as partner_id,
+                    MAX(created_at) as max_date
+                FROM messages
+                WHERE sender_id = ? OR receiver_id = ?
+                GROUP BY partner_id
+            ) conv_stats ON u.id = conv_stats.partner_id
+            JOIN messages last_msg ON (
+                (last_msg.sender_id = ? AND last_msg.receiver_id = u.id) OR 
+                (last_msg.sender_id = u.id AND last_msg.receiver_id = ?)
+            ) AND last_msg.created_at = conv_stats.max_date
+            WHERE u.deleted_at IS NULL
             ORDER BY last_message_at DESC
         `, [
-            auth.userId, auth.userId, auth.userId, auth.userId, auth.userId,
-            auth.userId, auth.userId, auth.userId, auth.userId, auth.userId, auth.userId
+            auth.userId,
+            auth.userId, auth.userId, auth.userId,
+            auth.userId, auth.userId
         ]);
 
         return NextResponse.json({ conversations });
