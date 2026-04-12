@@ -3,11 +3,11 @@
 -- Run AFTER database-schema.sql to bootstrap the system
 -- =============================================================================
 --
--- Default Accounts:
---   SUPER_ADMIN:  superadmin@supconnect.com / SuperAdmin@123
---   ADMIN:        admin@supconnect.com      / Admin@123
+-- Default Accounts (password for all: 11111111):
+--   SUPER_ADMIN:  superadmin@supconnect.com
+--   ADMIN:        admin@supconnect.com
 --
--- ⚠️  CHANGE THESE PASSWORDS IMMEDIATELY AFTER FIRST LOGIN
+-- ⚠️  CHANGE THESE PASSWORDS AFTER DEPLOYMENT
 -- =============================================================================
 
 USE `railway`;
@@ -22,7 +22,7 @@ INSERT INTO `users` (`id`, `email`, `password`, `name`, `role`, `created_at`, `u
 VALUES (
   'a0000000-0000-0000-0000-000000000001',
   'superadmin@supconnect.com',
-  '$2b$10$VWoThmhneSIqP6bZB67N3eqQnNkSslsLHlgQZblSoapImoAz4coDa',
+  '$2b$10$7KwAylU.8uMbeIUereM2F.Tchgzb4sFZ5HQ6RZ3FJB9/735FUiu9.',
   'System Super Admin',
   'SUPER_ADMIN',
   @NOW,
@@ -37,7 +37,7 @@ INSERT INTO `users` (`id`, `email`, `password`, `name`, `role`, `created_at`, `u
 VALUES (
   'a0000000-0000-0000-0000-000000000002',
   'admin@supconnect.com',
-  '$2b$10$zI4jALAs7mGnywFGm2zJuOyw3t5lEUN8B1iH4.hcni0G0U9D.7Z.q',
+  '$2b$10$7KwAylU.8uMbeIUereM2F.Tchgzb4sFZ5HQ6RZ3FJB9/735FUiu9.',
   'System Admin',
   'ADMIN',
   @NOW,
