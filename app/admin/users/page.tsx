@@ -20,7 +20,39 @@ interface UserFormData {
     email: string;
     password: string;
     role: string;
+    // Student-specific
+    department: string;
+    registrationNo: string;
+    // Supervisor-specific
+    tags: string[];
+    bio: string;
+    maxSlots: number;
+    yearsOfExperience: number;
 }
+
+interface DepartmentOption {
+    id: string;
+    name: string;
+}
+
+interface TagOption {
+    id: string;
+    name: string;
+    category: string | null;
+}
+
+const INITIAL_FORM: UserFormData = {
+    name: '',
+    email: '',
+    password: '',
+    role: 'STUDENT',
+    department: '',
+    registrationNo: '',
+    tags: [],
+    bio: '',
+    maxSlots: 5,
+    yearsOfExperience: 0,
+};
 
 // User Form Modal Component
 function UserFormModal({
@@ -36,36 +68,71 @@ function UserFormModal({
 }) {
     const { addToast } = useToast();
     const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState<UserFormData>({
-        name: '',
-        email: '',
-        password: '',
-        role: 'STUDENT',
-    });
+    const [formData, setFormData] = useState<UserFormData>({ ...INITIAL_FORM });
+    const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+    const [availableTags, setAvailableTags] = useState<TagOption[]>([]);
+    const [loadingOptions, setLoadingOptions] = useState(false);
 
     const isEditMode = !!editUser;
+
+    // Fetch departments and tags when modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchOptions = async () => {
+            setLoadingOptions(true);
+            try {
+                const token = localStorage.getItem('authToken');
+                const headers = { Authorization: `Bearer ${token}` };
+
+                const [deptRes, tagRes] = await Promise.all([
+                    fetch('/api/admin/departments', { headers }),
+                    fetch('/api/tags'),
+                ]);
+
+                if (deptRes.ok) {
+                    const deptData = await deptRes.json();
+                    setDepartments(deptData.departments || []);
+                }
+                if (tagRes.ok) {
+                    const tagData = await tagRes.json();
+                    setAvailableTags(tagData.tags || []);
+                }
+            } catch {
+                // Non-blocking — form still works, dropdowns just empty
+            } finally {
+                setLoadingOptions(false);
+            }
+        };
+
+        fetchOptions();
+    }, [isOpen]);
 
     useEffect(() => {
         if (editUser) {
             setFormData({
+                ...INITIAL_FORM,
                 name: editUser.name,
                 email: editUser.email,
-                password: '',
                 role: editUser.role,
             });
         } else {
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                role: 'STUDENT',
-            });
+            setFormData({ ...INITIAL_FORM });
         }
     }, [editUser, isOpen]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleTagToggle = (tagName: string) => {
+        setFormData(prev => ({
+            ...prev,
+            tags: prev.tags.includes(tagName)
+                ? prev.tags.filter(t => t !== tagName)
+                : [...prev.tags, tagName],
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +141,30 @@ function UserFormModal({
         if (!isEditMode && !formData.password) {
             addToast('Password is required for new users', 'error');
             return;
+        }
+
+        // Client-side role-specific validation
+        if (!isEditMode) {
+            if (formData.role === 'STUDENT') {
+                if (!formData.department) {
+                    addToast('Department is required for students', 'error');
+                    return;
+                }
+                if (!formData.registrationNo.trim()) {
+                    addToast('Registration number is required for students', 'error');
+                    return;
+                }
+            }
+            if (formData.role === 'SUPERVISOR') {
+                if (formData.tags.length === 0) {
+                    addToast('At least one tag is required for supervisors', 'error');
+                    return;
+                }
+                if (!formData.bio.trim()) {
+                    addToast('Bio is required for supervisors', 'error');
+                    return;
+                }
+            }
         }
 
         setSaving(true);
@@ -92,6 +183,20 @@ function UserFormModal({
 
             if (formData.password) {
                 payload.password = formData.password;
+            }
+
+            // Attach role-specific fields for new users
+            if (!isEditMode) {
+                if (formData.role === 'STUDENT') {
+                    payload.department = formData.department;
+                    payload.registrationNo = formData.registrationNo;
+                } else if (formData.role === 'SUPERVISOR') {
+                    payload.department = formData.department || null;
+                    payload.tags = formData.tags;
+                    payload.bio = formData.bio;
+                    payload.maxSlots = Number(formData.maxSlots) || 5;
+                    payload.yearsOfExperience = Number(formData.yearsOfExperience) || 0;
+                }
             }
 
             const response = await fetch(url, {
@@ -121,6 +226,14 @@ function UserFormModal({
 
     if (!isOpen) return null;
 
+    // Group tags by category for display
+    const tagsByCategory: Record<string, TagOption[]> = {};
+    availableTags.forEach(tag => {
+        const cat = tag.category || 'Other';
+        if (!tagsByCategory[cat]) tagsByCategory[cat] = [];
+        tagsByCategory[cat].push(tag);
+    });
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
@@ -130,9 +243,9 @@ function UserFormModal({
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 animate-fade-in">
-                <form onSubmit={handleSubmit}>
-                    <div className="p-6 border-b border-gray-200">
+            <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 animate-fade-in max-h-[90vh] flex flex-col">
+                <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
+                    <div className="p-6 border-b border-gray-200 shrink-0">
                         <h2 className="text-xl font-semibold text-gray-900">
                             {isEditMode ? 'Edit User' : 'Create New User'}
                         </h2>
@@ -143,7 +256,8 @@ function UserFormModal({
                         </p>
                     </div>
 
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 overflow-y-auto">
+                        {/* Base fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -196,7 +310,8 @@ function UserFormModal({
                                     name="role"
                                     value={formData.role}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                    disabled={isEditMode}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
                                     <option value="STUDENT">Student</option>
                                     <option value="SUPERVISOR">Supervisor</option>
@@ -204,9 +319,146 @@ function UserFormModal({
                                 </select>
                             </div>
                         </div>
+
+                        {/* ── Student-specific fields ── */}
+                        {!isEditMode && formData.role === 'STUDENT' && (
+                            <div className="border-t border-gray-200 pt-4 space-y-4">
+                                <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Student Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Department <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            name="department"
+                                            value={formData.department}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                        >
+                                            <option value="">Select department...</option>
+                                            {departments.map(d => (
+                                                <option key={d.id} value={d.name}>{d.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Registration No <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="registrationNo"
+                                            value={formData.registrationNo}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="e.g. IT21012345"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Supervisor-specific fields ── */}
+                        {!isEditMode && formData.role === 'SUPERVISOR' && (
+                            <div className="border-t border-gray-200 pt-4 space-y-4">
+                                <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Supervisor Details</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                                        <select
+                                            name="department"
+                                            value={formData.department}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                        >
+                                            <option value="">Select department...</option>
+                                            {departments.map(d => (
+                                                <option key={d.id} value={d.name}>{d.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Max Slots</label>
+                                        <input
+                                            type="number"
+                                            name="maxSlots"
+                                            value={formData.maxSlots}
+                                            onChange={handleChange}
+                                            min={1}
+                                            max={20}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Years of Exp.</label>
+                                        <input
+                                            type="number"
+                                            name="yearsOfExperience"
+                                            value={formData.yearsOfExperience}
+                                            onChange={handleChange}
+                                            min={0}
+                                            max={50}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Bio <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        name="bio"
+                                        value={formData.bio}
+                                        onChange={handleChange}
+                                        required
+                                        rows={3}
+                                        placeholder="Brief professional biography..."
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Expertise Tags <span className="text-red-500">*</span>
+                                        <span className="text-gray-400 font-normal ml-1">({formData.tags.length} selected)</span>
+                                    </label>
+                                    {loadingOptions ? (
+                                        <p className="text-sm text-gray-400">Loading tags...</p>
+                                    ) : (
+                                        <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 space-y-3">
+                                            {Object.entries(tagsByCategory).map(([category, tags]) => (
+                                                <div key={category}>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{category}</p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {tags.map(tag => (
+                                                            <button
+                                                                key={tag.id}
+                                                                type="button"
+                                                                onClick={() => handleTagToggle(tag.name)}
+                                                                className={`px-2.5 py-1 text-xs rounded-full border transition-all ${
+                                                                    formData.tags.includes(tag.name)
+                                                                        ? 'bg-brand-600 text-white border-brand-600'
+                                                                        : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400'
+                                                                }`}
+                                                            >
+                                                                {tag.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
