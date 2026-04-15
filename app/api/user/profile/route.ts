@@ -3,6 +3,7 @@ import { query, queryOne } from '@/app/lib/db';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { config } from '@/app/lib/config';
+import { compressImage, stripDataUrlPrefix } from '@/app/lib/image-compression';
 
 const JWT_SECRET = config.auth.jwtSecret;
 const SALT_ROUNDS = 10;
@@ -206,8 +207,10 @@ export async function PUT(request: NextRequest) {
                 }
                 if (profilePicture !== undefined) {
                     profUpdates.push('profile_picture = ?');
-                    // Store base64 string directly as blob
-                    profValues.push(profilePicture);
+                    // Compress base64 image to fit size limit, then strip data URL prefix
+                    const compressedImage = compressImage(profilePicture);
+                    const cleanImage = stripDataUrlPrefix(compressedImage);
+                    profValues.push(cleanImage);
                 }
 
                 if (profUpdates.length > 0) {
@@ -233,8 +236,10 @@ export async function PUT(request: NextRequest) {
                 }
                 if (profilePicture !== undefined) {
                     profUpdates.push('profile_picture = ?');
-                    // Store base64 string directly as blob
-                    profValues.push(profilePicture);
+                    // Compress base64 image to fit size limit, then strip data URL prefix
+                    const compressedImage = compressImage(profilePicture);
+                    const cleanImage = stripDataUrlPrefix(compressedImage);
+                    profValues.push(cleanImage);
                 }
 
                 if (profUpdates.length > 0) {
