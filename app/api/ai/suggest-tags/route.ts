@@ -52,24 +52,34 @@ export async function POST(request: NextRequest) {
         // Build prompt for Gemini - different prompts based on whether tags exist
         const hasExistingTags = tagNames.length > 0;
 
-        const prompt = hasExistingTags
-            ? `You are an academic project classification AI. Analyze the following project description and suggest relevant tags.
+        // Safeguard: Gemini will crash if enum is empty, so inject a placeholder
+        const validTagNames = tagNames.length > 0 ? tagNames : ["Placeholder"];
 
-EXISTING TAGS (select 3-8 most relevant):
+        const prompt = hasExistingTags
+            ? `You are an academic project classification AI. Analyze the project description and suggest relevant tags.
+
+EXISTING TAGS (You MUST strictly choose from these):
 ${tagNames.join(', ')}
 
-EXISTING CATEGORIES (for new tags):
+EXISTING CATEGORIES:
 ${tagCategories.join(', ')}
 
 PROJECT DESCRIPTION:
 ${description}
 
 INSTRUCTIONS:
-1. Select relevant tags from the EXISTING TAGS list.
-2. ONLY if the project has key aspects NOT covered by existing tags, suggest up to 2 NEW tags.
-3. For new tags, use one of the EXISTING CATEGORIES if possible, or suggest a sensible new one.
-4. STRICTLY follow the JSON schema provided.`
-            : `You are an academic project classification AI. Analyze the following project description and suggest relevant tags.
+1. Select 3-8 relevant tags from EXISTING TAGS.
+2. ONLY if critical domains are missing, suggest up to 2 NEW tags.
+
+EXAMPLES OF DESIRED BEHAVIOR:
+Project: "A mobile application using React Native to track daily water intake and visualize health trends."
+{"existingTags": ["Mobile App", "Health", "Data Visualization"], "newTags": []}
+
+Project: "A novel IoT device utilizing LoRaWAN to measure soil moisture in remote vineyards."
+{"existingTags": ["Hardware & IoT", "Agriculture"], "newTags": [{"name": "LoRaWAN", "category": "Hardware & IoT"}]}
+
+Now, process the PROJECT DESCRIPTION and output the JSON.`
+            : `You are an academic project classification AI. Analyze the project description and suggest relevant tags.
 
 PROJECT DESCRIPTION:
 ${description}
@@ -79,7 +89,15 @@ INSTRUCTIONS:
 2. For each tag, assign an appropriate category from common academic/technical domains like:
    - "Artificial Intelligence", "Software Development", "Data", "Security", "Cloud & DevOps", "Hardware & IoT", "Domain", "Other"
 3. Tags should be concise (1-3 words) and descriptive.
-4. STRICTLY follow the JSON schema provided.`;
+
+EXAMPLES OF DESIRED BEHAVIOR:
+Project: "Building a decentralized voting system using blockchain and smart contracts on Ethereum."
+{"existingTags": [], "newTags": [{"name": "Blockchain", "category": "Security"}, {"name": "Smart Contracts", "category": "Software Development"}, {"name": "Voting System", "category": "Other"}]}
+
+Project: "Real-time sentiment analysis of social media posts using Python and NLP."
+{"existingTags": [], "newTags": [{"name": "NLP", "category": "Artificial Intelligence"}, {"name": "Sentiment Analysis", "category": "Artificial Intelligence"}, {"name": "Social Media Analytics", "category": "Data"}]}
+
+Now, process the PROJECT DESCRIPTION and output the JSON.`;
 
         // Call Gemini API with Structured Output configuration
         const geminiResponse = await fetch(`${config.ai.geminiUrl}?key=${config.ai.geminiApiKey}`, {
@@ -88,16 +106,19 @@ INSTRUCTIONS:
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 8192,
+                    temperature: 0.1,
+                    maxOutputTokens: 1024,
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: "OBJECT",
                         properties: {
                             existingTags: {
                                 type: "ARRAY",
-                                items: { type: "STRING" },
-                                description: "List of tag names selected from the provided existing tags list"
+                                items: { 
+                                    type: "STRING",
+                                    enum: validTagNames
+                                },
+                                description: "You MUST ONLY select from the provided enum list."
                             },
                             newTags: {
                                 type: "ARRAY",
