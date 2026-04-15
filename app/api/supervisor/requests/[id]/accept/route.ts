@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  return acceptBookingRequest(params.id, request);
+  const { id } = await params;
+  return acceptBookingRequest(id, request);
 }
