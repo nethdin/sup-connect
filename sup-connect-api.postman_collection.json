@@ -1,0 +1,830 @@
+{
+  "info": {
+    "name": "SUP-Connect API",
+    "description": "API collection for SUP-Connect application (Supervisor-Student Connection Platform)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\",\n  \"role\": \"STUDENT\",\n  \"department\": \"Computer Science\",\n  \"registrationNo\": \"CS2021001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/verify-password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Account",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/account",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SUPERVISORS",
+      "item": [
+        {
+          "name": "Get All Supervisors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/supervisors?available=true",
+              "query": [
+                {
+                  "key": "available",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Supervisor by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisors/{{supervisorId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "STUDENT",
+      "item": [
+        {
+          "name": "Submit Project Idea",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/student/idea",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"AI-Powered Health Monitoring System\",\n  \"description\": \"A comprehensive health monitoring system that uses AI and machine learning to analyze patient data and provide real-time health insights. The system will integrate with wearable devices to track vital signs and predict potential health issues before they become critical.\",\n  \"tags\": [\"AI\", \"Healthcare\", \"Machine Learning\", \"IoT\"],\n  \"attachments\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Project Matches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/student/matches?sortBy=match_count",
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "match_count"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Student Assignment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/student/assignment"
+          }
+        },
+        {
+          "name": "Send Booking Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/student/request",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supervisorId\": \"{{supervisorId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/student/request/{{requestId}}/cancel"
+          }
+        },
+        {
+          "name": "Get Student Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/student/requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SUPERVISOR",
+      "item": [
+        {
+          "name": "Get Supervisor Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisor/profile"
+          }
+        },
+        {
+          "name": "Update Supervisor Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/supervisor/profile",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Updated bio\",\n  \"tags\": [\"AI\", \"Machine Learning\"],\n  \"maxSlots\": 10,\n  \"yearsOfExperience\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Supervisor Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisor/stats"
+          }
+        },
+        {
+          "name": "Get Supervisor Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/supervisor/requests?status=PENDING",
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Booking Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/supervisor/requests/{{requestId}}/accept"
+          }
+        },
+        {
+          "name": "Decline Booking Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/supervisor/requests/{{requestId}}/decline"
+          }
+        },
+        {
+          "name": "Get Supervisor Assignments",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisor/assignments"
+          }
+        },
+        {
+          "name": "Remove Student Assignment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/supervisor/assignments/{{studentId}}"
+          }
+        },
+        {
+          "name": "Toggle Student Edit Permission",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/supervisor/assignments/{{studentId}}/toggle-edit"
+          }
+        },
+        {
+          "name": "Get Suggested Tags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisor/suggested-tags"
+          }
+        },
+        {
+          "name": "Get Supervisor Availability",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/supervisor/availability"
+          }
+        },
+        {
+          "name": "Set Supervisor Availability",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/supervisor/availability",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availableDates\": [\"2024-12-20\", \"2024-12-21\", \"2024-12-22\"],\n  \"timeSlots\": [\n    { \"startTime\": \"09:00\", \"endTime\": \"10:00\", \"slotDuration\": 30 },\n    { \"startTime\": \"10:00\", \"endTime\": \"11:00\", \"slotDuration\": 30 },\n    { \"startTime\": \"14:00\", \"endTime\": \"16:00\", \"slotDuration\": 60 }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ADMIN",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?role=STUDENT",
+              "query": [
+                {
+                  "key": "role",
+                  "value": "STUDENT"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"New User\",\n  \"role\": \"STUDENT\",\n  \"department\": \"Computer Science\",\n  \"registrationNo\": \"CS2021999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update User (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"role\": \"SUPERVISOR\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/departments"
+          }
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/departments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Software Engineering\",\n  \"code\": \"SE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/departments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{departmentId}}\",\n  \"name\": \"Updated Department Name\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/departments?id={{departmentId}}",
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{departmentId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Tags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/tags"
+          }
+        },
+        {
+          "name": "Create Tag (Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/tags",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"category\": \"AI\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Tag (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/tags",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{tagId}}\",\n  \"name\": \"Updated Tag Name\",\n  \"category\": \"AI\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Tag (Admin)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/tags?id={{tagId}}",
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{tagId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Transfer Super Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/transfer-super-admin",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newSuperAdminEmail\": \"newadmin@example.com\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MESSAGES",
+      "item": [
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/messages"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/messages",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiverId\": \"{{recipientId}}\",\n  \"content\": \"Hello! I'd like to discuss my project.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Messages with Recipient",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/messages/{{recipientId}}"
+          }
+        },
+        {
+          "name": "Mark Messages as Read",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/messages/{{recipientId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "MEETINGS",
+      "item": [
+        {
+          "name": "Get Meetings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/meetings?upcoming=true",
+              "query": [
+                {
+                  "key": "upcoming",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Book Meeting",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/meetings",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supervisorId\": \"{{supervisorId}}\",\n  \"dateTime\": \"2024-12-20T10:00:00Z\",\n  \"mode\": \"ONLINE\",\n  \"notes\": \"Discussion about project progress\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "APPOINTMENTS",
+      "item": [
+        {
+          "name": "Get Appointments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/appointments?status=PENDING&upcoming=true",
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "upcoming",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Book Appointment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/appointments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availabilityId\": \"{{availabilityId}}\",\n  \"dateTime\": \"2024-12-20T10:00:00Z\",\n  \"notes\": \"Need to discuss project progress\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Appointment Status",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/appointments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"status\": \"CONFIRMED\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AVAILABILITY",
+      "item": [
+        {
+          "name": "Book Availability Slot",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/availability/book",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supervisorId\": \"{{supervisorId}}\",\n  \"dateTime\": \"2024-12-20T10:00:00Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NOTIFICATIONS",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notifications?unread=false&limit=50",
+              "query": [
+                {
+                  "key": "unread",
+                  "value": "false"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/notifications",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificationId\": \"{{notificationId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/notifications",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"markAllRead\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/notifications?id={{notificationId}}",
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete All Notifications",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/notifications?all=true",
+              "query": [
+                {
+                  "key": "all",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TAGS",
+      "item": [
+        {
+          "name": "Get All Tags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tags"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Suggest Tags",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/ai/suggest-tags",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"A machine learning system for predicting stock market trends using historical data and technical indicators.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "USER PROFILE",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/user/profile"
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/user/profile",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"bio\": \"Updated bio information\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
