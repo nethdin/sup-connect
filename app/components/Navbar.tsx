@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authAPI } from '@/app/lib/api-client';
@@ -23,6 +22,7 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,8 +32,26 @@ export default function Navbar() {
     if (token && userData) {
       setUser(JSON.parse(userData));
       setIsLoggedIn(true);
+      // Fetch profile picture from API
+      fetchProfilePicture(token);
     }
   }, []);
+
+  const fetchProfilePicture = async (token: string) => {
+    try {
+      const response = await fetch('/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile?.profile_picture) {
+          setProfilePicture(`data:image/jpeg;base64,${data.profile.profile_picture}`);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile picture:', err);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -139,8 +157,16 @@ export default function Navbar() {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="transition-transform hover:scale-110"
                   >
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transition-shadow">
-                      {initials}
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+                      {profilePicture ? (
+                        <img
+                          src={profilePicture}
+                          alt={user?.name || 'Profile'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{initials}</span>
+                      )}
                     </div>
                   </button>
 
@@ -149,8 +175,16 @@ export default function Navbar() {
                       {/* User Info Header */}
                       <div className="px-4 py-4 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md">
-                            {initials}
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md overflow-hidden">
+                            {profilePicture ? (
+                              <img
+                                src={profilePicture}
+                                alt={user?.name || 'Profile'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span>{initials}</span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-white text-sm truncate">{user?.name}</p>
