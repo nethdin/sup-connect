@@ -96,7 +96,9 @@ async function resolveTagIds(tagIds: string[]): Promise<string[]> {
   if (!tagIds || tagIds.length === 0) return [];
 
   // Check if these look like UUIDs (tag IDs) or plain names
-  const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  // Matches custom format: t[hex]{7}-[hex]{4}-[hex]{4}-[hex]{4}-[hex]{12}
+  // Also matches standard UUID: [hex]{8}-[hex]{4}-[hex]{4}-[hex]{4}-[hex]{12}
+  const isUuid = (str: string) => /^[a-z]?[0-9a-f]{7,8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
   // If they don't look like UUIDs, assume they're already names (backward compatibility)
   if (!tagIds.some(isUuid)) {
@@ -121,8 +123,8 @@ async function resolveTagIdsToMap(tagIds: string[]): Promise<Map<string, TagInfo
   const result = new Map<string, TagInfo>();
   if (!tagIds || tagIds.length === 0) return result;
 
-  // Filter to only valid UUIDs
-  const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  // Filter to only valid UUIDs (including custom 't' prefixed format)
+  const isUuid = (str: string) => /^[a-z]?[0-9a-f]{7,8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
   const validIds = tagIds.filter(isUuid);
   if (validIds.length === 0) return result;
 
