@@ -160,6 +160,7 @@ export interface SupervisorProfile {
   yearsOfExperience: number;
   maxSlots: number;
   currentSlots: number;
+  profilePicture?: string;
   user?: {
     id: string;
     email: string;
