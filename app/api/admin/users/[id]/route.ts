@@ -21,7 +21,7 @@ const getUserFromRequest = (request: NextRequest) => {
 // DELETE - Admin deletes another user (soft delete)
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const auth = getUserFromRequest(request);
@@ -29,10 +29,10 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const targetUserId = params.id;
+        const { id } = await params;
 
         // Prevent admin from deleting themselves
-        if (auth.userId === targetUserId) {
+        if (auth.userId === id) {
             return NextResponse.json(
                 { error: 'You cannot delete your own account from here. Use the profile page.' },
                 { status: 400 }
@@ -42,7 +42,7 @@ export async function DELETE(
         // Get target user
         const targetUser = await queryOne<any>(
             'SELECT id, role, deleted_at FROM users WHERE id = ?',
-            [targetUserId]
+            [id]
         );
 
         if (!targetUser) {
@@ -70,7 +70,7 @@ export async function DELETE(
         }
 
         // Soft delete
-        await query('UPDATE users SET deleted_at = NOW() WHERE id = ?', [targetUserId]);
+        await query('UPDATE users SET deleted_at = NOW() WHERE id = ?', [id]);
 
         return NextResponse.json({ message: 'User deleted successfully' });
     } catch (error) {
@@ -82,7 +82,7 @@ export async function DELETE(
 // PUT - Admin updates another user
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const auth = getUserFromRequest(request);
@@ -90,12 +90,12 @@ export async function PUT(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const targetUserId = params.id;
+        const { id } = await params;
         const body = await request.json();
         const { name, email, password, role } = body;
 
         // Prevent admin from editing themselves here
-        if (auth.userId === targetUserId) {
+        if (auth.userId === id) {
             return NextResponse.json(
                 { error: 'Use the profile page to edit your own account' },
                 { status: 400 }
@@ -105,7 +105,7 @@ export async function PUT(
         // Get target user
         const targetUser = await queryOne<any>(
             'SELECT id, role, deleted_at FROM users WHERE id = ?',
-            [targetUserId]
+            [id]
         );
 
         if (!targetUser || targetUser.deleted_at) {
@@ -148,7 +148,7 @@ export async function PUT(
             // Check if email is already taken
             const existing = await queryOne<any>(
                 'SELECT id FROM users WHERE email = ? AND id != ?',
-                [email, targetUserId]
+                [email, id]
             );
             if (existing) {
                 return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
@@ -171,7 +171,7 @@ export async function PUT(
         }
 
         updates.push('updated_at = NOW()');
-        values.push(targetUserId);
+        values.push(id);
 
         await query(
             `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
@@ -188,7 +188,7 @@ export async function PUT(
 // GET - Admin gets single user details
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const auth = getUserFromRequest(request);
@@ -196,10 +196,12 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const { id } = await params;
+
         const user = await queryOne<any>(
             `SELECT id, email, name, role, created_at, deleted_at 
              FROM users WHERE id = ?`,
-            [params.id]
+            [id]
         );
 
         if (!user) {
