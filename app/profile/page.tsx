@@ -111,8 +111,10 @@ export default function ProfilePage() {
                 bio: data.profile?.bio || '',
                 yearsOfExperience: data.profile?.years_of_experience || 0,
                 maxSlots: data.profile?.max_slots || 5,
-                // Profile picture
-                profilePicture: data.profile?.profile_picture || '',
+                // Profile picture - convert to data URL if exists
+                profilePicture: data.profile?.profile_picture
+                  ? `data:image/jpeg;base64,${data.profile.profile_picture}`
+                  : '',
             }));
         } catch (err) {
             console.error('Failed to fetch profile:', err);
