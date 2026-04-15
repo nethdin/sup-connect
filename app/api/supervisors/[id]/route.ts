@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  return getSupervisorById(params.id);
+  const { id } = await params;
+  return getSupervisorById(id);
 }
