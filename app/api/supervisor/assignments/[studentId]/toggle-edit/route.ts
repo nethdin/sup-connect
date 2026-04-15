@@ -3,7 +3,8 @@ import { toggleStudentEditPermission } from '@/app/api/api-handlers';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
-  return toggleStudentEditPermission(params.studentId, request);
+  const { studentId } = await params;
+  return toggleStudentEditPermission(studentId, request);
 }
