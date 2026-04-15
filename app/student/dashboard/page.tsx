@@ -152,6 +152,25 @@ export default function StudentDashboard() {
                     Assigned Supervisor
                   </h2>
                   <div className="flex items-start justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    {/* Profile Picture */}
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-blue-100 flex items-center justify-center mr-4">
+                      {assignment.supervisor?.profilePicture ? (
+                        <img
+                          src={`data:image/jpeg;base64,${assignment.supervisor.profilePicture}`}
+                          alt={assignment.supervisor?.user?.name || 'Profile'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                          {(assignment.supervisor?.user?.name || 'N/A')
+                            .split(' ')
+                            .map(n => n[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">
                         {assignment.supervisor?.user?.name}
@@ -171,7 +190,7 @@ export default function StudentDashboard() {
                     </div>
                     <Link
                       href={`/messages?userId=${assignment.supervisor?.user?.id}&userName=${encodeURIComponent(assignment.supervisor?.user?.name || '')}&userRole=SUPERVISOR`}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium flex-shrink-0"
                     >
                       Message
                     </Link>
