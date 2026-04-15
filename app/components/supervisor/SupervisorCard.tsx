@@ -3,7 +3,6 @@
 import { SupervisorProfile } from '@/app/lib/types';
 import { getInitials } from '@/app/lib/utils';
 import TagDisplay from '@/app/components/common/TagDisplay';
-import Image from 'next/image';
 
 interface SupervisorCardProps {
   supervisor: SupervisorProfile;
@@ -24,8 +23,19 @@ export default function SupervisorCard({
       <div className="p-6 pb-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-              {getInitials(supervisor.user?.name || 'N/A')}
+            {/* Profile Picture or Initials */}
+            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+              {supervisor.profilePicture ? (
+                <img
+                  src={`data:image/jpeg;base64,${supervisor.profilePicture}`}
+                  alt={supervisor.user?.name || 'Profile'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                  {getInitials(supervisor.user?.name || 'N/A')}
+                </div>
+              )}
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
