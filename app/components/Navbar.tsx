@@ -84,6 +84,7 @@ export default function Navbar() {
         { href: '/student/dashboard', label: 'Dashboard' },
         { href: '/supervisors', label: 'Browse Supervisors' },
         { href: '/student/recommendations', label: 'My Recommendations' },
+        { href: '/student/requests', label: 'My Requests' },
         { href: '/student/idea', label: 'My Project Idea' },
         { href: '/student/appointments', label: 'My Appointments' },
         { href: '/messages', label: 'Messages' },
@@ -92,6 +93,7 @@ export default function Navbar() {
     } else if (user?.role === 'SUPERVISOR') {
       return [
         { href: '/supervisor/dashboard', label: 'Dashboard' },
+        { href: '/supervisor/requests', label: 'Booking Requests' },
         { href: '/supervisor/availability', label: 'Manage Availability' },
         { href: '/messages', label: 'Messages' },
         { href: '/profile', label: 'My Profile' },
@@ -206,7 +208,11 @@ export default function Navbar() {
                             if (href.includes('dashboard')) return 'fa-gauge';
                             if (href.includes('supervisors')) return 'fa-users';
                             if (href.includes('recommendations')) return 'fa-star';
+                            if (href.includes('requests')) return 'fa-envelope';
                             if (href.includes('idea')) return 'fa-lightbulb';
+                            if (href.includes('appointments')) return 'fa-calendar';
+                            if (href.includes('availability')) return 'fa-calendar-check';
+                            if (href.includes('messages')) return 'fa-comments';
                             if (href.includes('management')) return 'fa-sliders';
                             return 'fa-user';
                           };
