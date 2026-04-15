@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { notificationAPI, Notification } from '@/app/lib/api-client';
+import NotificationDetailModal from './common/NotificationDetailModal';
 
 export default function NotificationBell() {
     const router = useRouter();
@@ -10,6 +11,8 @@ export default function NotificationBell() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -63,6 +66,12 @@ export default function NotificationBell() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleViewDetails = (notification: Notification, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedNotification(notification);
+        setIsModalOpen(true);
     };
 
     const handleNotificationClick = (notification: Notification) => {
@@ -158,8 +167,7 @@ export default function NotificationBell() {
                             notifications.map(notification => (
                                 <div
                                     key={notification.id}
-                                    onClick={() => handleNotificationClick(notification)}
-                                    className={`p-4 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 ${!notification.is_read ? 'bg-brand-50' : ''
+                                    className={`p-4 border-b border-gray-100 transition hover:bg-gray-50 ${!notification.is_read ? 'bg-brand-50' : ''
                                         }`}
                                 >
                                     <div className="flex gap-3">
@@ -175,9 +183,18 @@ export default function NotificationBell() {
                                                 {formatTime(notification.created_at)}
                                             </p>
                                         </div>
-                                        {!notification.is_read && (
-                                            <div className="w-2 h-2 bg-brand-600 rounded-full mt-2"></div>
-                                        )}
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <button
+                                                onClick={(e) => handleViewDetails(notification, e)}
+                                                className="p-1.5 text-gray-400 hover:text-brand-600 transition"
+                                                title="View details"
+                                            >
+                                                <i className="fa-solid fa-arrow-up-right text-sm"></i>
+                                            </button>
+                                            {!notification.is_read && (
+                                                <div className="w-2 h-2 bg-brand-600 rounded-full"></div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -200,6 +217,17 @@ export default function NotificationBell() {
                     )}
                 </div>
             )}
+
+            {/* Notification Detail Modal */}
+            <NotificationDetailModal
+                notification={selectedNotification}
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedNotification(null);
+                }}
+                onMarkAsRead={markAsRead}
+            />
         </div>
     );
 }
