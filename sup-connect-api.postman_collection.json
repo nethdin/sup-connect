@@ -851,7 +851,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"AI-powered Recommendation System\",\n  \"description\": \"A machine learning system that recommends academic supervisors based on project description and supervisor expertise\",\n  \"objectives\": [\"Implement ML model\", \"Create recommendation engine\"],\n  \"technologies\": [\"Python\", \"TensorFlow\", \"React\"],\n  \"expectedOutcome\": \"Improved supervisor-student matching\",\n  \"allowEdit\": true\n}"
+              "raw": "{\n  \"title\": \"AI-powered Recommendation System\",\n  \"description\": \"A machine learning system that recommends academic supervisors based on project description and supervisor expertise. This system uses advanced algorithms to match students with supervisors based on research interests, expertise, and availability. The implementation involves data preprocessing, model training, and integration with the academic platform.\",\n  \"tags\": [\"Machine Learning\", \"AI\", \"Python\", \"Recommendation Systems\"],\n  \"attachments\": []\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/student/idea",
