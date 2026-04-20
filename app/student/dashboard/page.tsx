@@ -6,16 +6,9 @@ import MeetingList from '@/app/components/common/MeetingList';
 import TagDisplay from '@/app/components/common/TagDisplay';
 import Link from 'next/link';
 import { useToast } from '@/app/context/ToastContext';
-import { assignmentAPI, meetingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
+import { assignmentAPI, schedulingAPI, studentAPI, ProjectIdea } from '@/app/lib/api-client';
 import RouteGuard from '@/app/components/RouteGuard';
 import ProjectIdeaForm from '@/app/components/student/ProjectIdeaForm';
-
-// Local type since progress updates feature is not yet implemented
-interface ProgressUpdate {
-  id: string;
-  title: string;
-  description: string;
-}
 
 // Request type
 interface BookingRequest {
@@ -33,7 +26,6 @@ export default function StudentDashboard() {
   const { addToast } = useToast();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
   const [projectIdea, setProjectIdea] = useState<ProjectIdea | null>(null);
   const [pendingRequest, setPendingRequest] = useState<BookingRequest | null>(null);
   const [cancellingRequest, setCancellingRequest] = useState(false);
@@ -63,13 +55,9 @@ export default function StudentDashboard() {
       const pending = requestsData.requests.find(r => r.status === 'PENDING');
       setPendingRequest(pending || null);
 
-      // Fetch upcoming meetings
-      const meetingsData = await meetingAPI.getAll(true);
-      setMeetings(meetingsData.meetings as any);
-
-      // TODO: Fetch progress updates when endpoint is ready
-      // const progressData = await progressAPI.getAll();
-      // setProgressUpdates(progressData.updates);
+      // Fetch upcoming appointments
+      const appointmentsData = await schedulingAPI.getAppointments({ upcoming: true });
+      setMeetings(appointmentsData.appointments as any);
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -414,44 +402,6 @@ export default function StudentDashboard() {
                   </p>
                 )}
               </div>
-
-              {/* Progress Updates */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Progress Updates
-                  </h2>
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium"
-                    title="Coming soon"
-                  >
-                    New Update (Coming Soon)
-                  </button>
-                </div>
-
-                {progressUpdates.length === 0 ? (
-                  <p className="text-gray-600 text-center py-8">
-                    No progress updates yet. Start sharing your progress!
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {progressUpdates.map((update) => (
-                      <div
-                        key={update.id}
-                        className="p-4 border border-gray-200 rounded-lg"
-                      >
-                        <h4 className="font-semibold text-gray-900">
-                          {update.title}
-                        </h4>
-                        <p className="text-sm text-gray-600 mt-2">
-                          {update.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Sidebar */}
@@ -503,12 +453,6 @@ export default function StudentDashboard() {
                     <span className="text-gray-600">Meetings Scheduled</span>
                     <span className={`font-medium ${meetings.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                       {meetings.length > 0 ? '✓' : '○'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Progress Updates</span>
-                    <span className={`font-medium ${progressUpdates.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                      {progressUpdates.length > 0 ? '✓' : '○'}
                     </span>
                   </div>
                 </div>

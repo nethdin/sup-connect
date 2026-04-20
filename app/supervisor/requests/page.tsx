@@ -190,38 +190,43 @@ export default function SupervisorRequestsPage() {
                     >
                       {/* Request Header */}
                       <div className="p-6">
-                        <div className="flex items-start justify-between gap-4 mb-4">
+                        {/* Student & Status Information */}
+                        <div className="flex items-start justify-between gap-4 mb-6">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {request.student_name}
-                              </h3>
+                            <div className="flex items-center gap-3 mb-3">
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {request.student_name}
+                                </h3>
+                                <p className="text-sm text-gray-500">{request.student_email}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Request Status & Dates */}
+                            <div className="flex items-center gap-4 flex-wrap">
                               <span
                                 className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(request.status)}`}
                               >
                                 <span>{getStatusIcon(request.status)}</span>
                                 {request.status}
                               </span>
-                            </div>
-
-                            <p className="text-sm text-gray-600">{request.student_email}</p>
-
-                            <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
-                              <span>📅 Requested: {formatDate(request.created_at)}</span>
-                              {request.responded_at && (
-                                <span>⏱️ Responded: {formatDate(request.responded_at)}</span>
-                              )}
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                                <span>📅 {formatDate(request.created_at)}</span>
+                                {request.responded_at && (
+                                  <span>⏱️ {formatDate(request.responded_at)}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           {/* Quick Actions */}
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             {request.status === 'PENDING' && (
                               <>
                                 <button
                                   onClick={() => handleAccept(request.id)}
                                   disabled={processing === request.id}
-                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition disabled:cursor-not-allowed flex items-center gap-2"
+                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
                                 >
                                   {processing === request.id ? (
                                     <i className="fa-solid fa-spinner fa-spin"></i>
@@ -235,7 +240,7 @@ export default function SupervisorRequestsPage() {
                                 <button
                                   onClick={() => handleDecline(request.id)}
                                   disabled={processing === request.id}
-                                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition disabled:cursor-not-allowed flex items-center gap-2"
+                                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
                                 >
                                   {processing === request.id ? (
                                     <i className="fa-solid fa-spinner fa-spin"></i>
@@ -248,101 +253,62 @@ export default function SupervisorRequestsPage() {
                                 </button>
                               </>
                             )}
-
-                            {request.projectIdea && (
-                              <button
-                                onClick={() => toggleExpand(request.id)}
-                                className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
-                              >
-                                <i
-                                  className={`fa-solid fa-chevron-${expandedRequest === request.id ? 'up' : 'down'}`}
-                                ></i>
-                                Project Details
-                              </button>
-                            )}
                           </div>
                         </div>
 
-                        {/* Project Idea Preview */}
+                        {/* Project Idea Section - Collapsible */}
                         {request.projectIdea && (
-                          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl">📋</span>
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900">
-                                  {request.projectIdea.title}
-                                </h4>
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                  {request.projectIdea.description}
-                                </p>
+                          <div className="border-t border-gray-200 pt-4">
+                            <button
+                              onClick={() => toggleExpand(request.id)}
+                              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 mb-3 w-full"
+                            >
+                              <i
+                                className={`fa-solid fa-chevron-${expandedRequest === request.id ? 'down' : 'right'} text-gray-400`}
+                              ></i>
+                              <span>📋 Project Idea</span>
+                            </button>
+
+                            {expandedRequest === request.id && (
+                              <div className="ml-4 space-y-3 text-sm">
+                                <div>
+                                  <h5 className="font-semibold text-gray-900 mb-1">
+                                    {request.projectIdea.title}
+                                  </h5>
+                                  <p className="text-gray-600 whitespace-pre-wrap">
+                                    {request.projectIdea.description}
+                                  </p>
+                                </div>
+
                                 {request.projectIdea.tags?.length > 0 && (
-                                  <div className="flex gap-2 mt-2 flex-wrap">
-                                    {request.projectIdea.tags.slice(0, 3).map((tag, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                    {request.projectIdea.tags.length > 3 && (
-                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                                        +{request.projectIdea.tags.length - 3}
-                                      </span>
-                                    )}
+                                  <div>
+                                    <p className="text-gray-700 font-medium mb-2">Tags / Tech Stack:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {request.projectIdea.tags.map((tag, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
 
-                        {/* Expanded Details */}
-                        {expandedRequest === request.id && request.projectIdea && (
-                          <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg space-y-4">
-                            <div>
-                              <h5 className="text-sm font-semibold text-gray-700 uppercase mb-2">
-                                Description
-                              </h5>
-                              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                {request.projectIdea.description}
-                              </p>
-                            </div>
-
-                            {request.projectIdea.tags?.length > 0 && (
-                              <div>
-                                <h5 className="text-sm font-semibold text-gray-700 uppercase mb-2">
-                                  Tags / Tech Stack
-                                </h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {request.projectIdea.tags.map((tag, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
+                                <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                                  Submitted: {formatDate(request.projectIdea.createdAt)}
                                 </div>
                               </div>
                             )}
-
-                            <div>
-                              <h5 className="text-sm font-semibold text-gray-700 uppercase mb-1">
-                                Submitted On
-                              </h5>
-                              <p className="text-sm text-gray-600">
-                                {formatDate(request.projectIdea.createdAt)}
-                              </p>
-                            </div>
                           </div>
                         )}
 
                         {!request.projectIdea && (
-                          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p className="text-sm text-yellow-800">
-                              <i className="fa-solid fa-exclamation-triangle mr-2"></i>
-                              This student has not submitted a project idea yet.
+                          <div className="border-t border-gray-200 pt-4">
+                            <p className="text-sm text-gray-500">
+                              <i className="fa-solid fa-info-circle mr-2 text-gray-400"></i>
+                              No project idea submitted yet
                             </p>
                           </div>
                         )}

@@ -1117,13 +1117,13 @@ export async function getSupervisorRequests(request: NextRequest) {
         u.id as student_user_id,
         u.email as student_email,
         u.name as student_name,
-        pi.id as project_id,
-        pi.title as project_title,
-        pi.description as project_description,
-        pi.category as project_category,
-        pi.keywords as project_keywords,
-        pi.attachments as project_attachments,
-        pi.created_at as project_created_at
+         pi.id as project_id,
+         pi.title as project_title,
+         pi.description as project_description,
+         pi.category as project_category,
+         pi.tags as project_tags,
+         pi.attachments as project_attachments,
+         pi.created_at as project_created_at
       FROM booking_requests br
       JOIN users u ON br.student_id = u.id
       LEFT JOIN project_ideas pi ON pi.student_id = br.student_id
@@ -1140,6 +1140,18 @@ export async function getSupervisorRequests(request: NextRequest) {
 
     const rows = await query<any[]>(sql, params);
 
+    // Collect all tag IDs for batch resolution
+    const allTagIds = new Set<string>();
+    rows.forEach(row => {
+      if (row.project_tags) {
+        const tagIds = parseTags(row.project_tags);
+        tagIds.forEach(id => allTagIds.add(id));
+      }
+    });
+
+    // Batch resolve tag IDs to names
+    const tagMap = await resolveTagIdsToMap([...allTagIds]);
+
     const requests = rows.map(row => ({
       id: row.id,
       studentId: row.student_id,
@@ -1152,15 +1164,15 @@ export async function getSupervisorRequests(request: NextRequest) {
         email: row.student_email,
         name: row.student_name,
       },
-      projectIdea: row.project_id ? {
-        id: row.project_id,
-        title: row.project_title,
-        description: row.project_description,
-        category: row.project_category,
-        keywords: parseTags(row.project_keywords),
-        attachments: parseTags(row.project_attachments),
-        createdAt: row.project_created_at,
-      } : null,
+       projectIdea: row.project_id ? {
+         id: row.project_id,
+         title: row.project_title,
+         description: row.project_description,
+         category: row.project_category,
+         tags: parseTags(row.project_tags).map(id => tagMap.get(id)?.name || id).filter(Boolean),
+         attachments: parseTags(row.project_attachments),
+         createdAt: row.project_created_at,
+       } : null,
     }));
 
     return NextResponse.json({
@@ -1492,9 +1504,9 @@ export async function bookMeetingSlot(request: NextRequest) {
     const { supervisorId, dateTime, mode, notes } = body;
 
     // Validation
-    if (!supervisorId || !dateTime || !mode) {
+    if (!supervisorId || !dateTime) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: supervisorId, dateTime' },
         { status: 400 }
       );
     }
@@ -1515,44 +1527,49 @@ export async function bookMeetingSlot(request: NextRequest) {
     // Check if user has accepted booking with supervisor
     if (auth.role === 'STUDENT') {
       const hasAcceptedBooking = await queryOne(
-        'SELECT * FROM booking_requests WHERE student_id = ? AND supervisor_id = ? AND status = ?',
-        [auth.userId, supervisorId, 'ACCEPTED']
+        'SELECT * FROM assignments WHERE student_id = ? AND supervisor_id = ?',
+        [auth.userId, supervisorId]
       );
 
       if (!hasAcceptedBooking) {
         return NextResponse.json(
-          { error: 'You must have an accepted booking request with this supervisor' },
+          { error: 'You must be assigned to this supervisor' },
           { status: 403 }
         );
       }
     }
 
-    const meetingId = generateId();
+    const appointmentId = generateId();
+    // Insert into appointments table (not meetings)
+    // Use 30 min default duration if not specified
+    const duration = body.duration || 30;
+    
     await query(
-      'INSERT INTO meetings (id, student_id, supervisor_id, date_time, mode, notes) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO appointments (id, student_id, supervisor_id, date_time, duration, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
-        meetingId,
+        appointmentId,
         auth.role === 'STUDENT' ? auth.userId : body.studentId,
         supervisorId,
         dateTime,
-        mode,
-        notes
+        duration,
+        notes || null,
+        'PENDING'
       ]
     );
 
-    const meeting = await queryOne<any>(
-      'SELECT * FROM meetings WHERE id = ?',
-      [meetingId]
+    const appointment = await queryOne<any>(
+      'SELECT * FROM appointments WHERE id = ?',
+      [appointmentId]
     );
 
     return NextResponse.json({
-      message: 'Meeting booked successfully',
-      meeting,
+      message: 'Appointment booked successfully',
+      appointment,
     }, { status: 201 });
   } catch (error) {
     console.error('Book meeting error:', error);
     return NextResponse.json(
-      { error: 'Failed to book meeting' },
+      { error: 'Failed to book appointment' },
       { status: 500 }
     );
   }

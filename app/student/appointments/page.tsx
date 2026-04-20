@@ -164,7 +164,7 @@ export default function AppointmentsPage() {
                             {showBookForm && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
                                     <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                                        Book with {assignment.supervisorName}
+                                        Book with {assignment.supervisor?.user?.name || 'your supervisor'}
                                     </h2>
 
                                     {availability.length === 0 ? (

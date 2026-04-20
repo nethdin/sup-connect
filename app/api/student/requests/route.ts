@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
                 br.status,
                 br.created_at,
                 br.responded_at,
-                sp.user_id as supervisor_id,
+                br.supervisor_id,
                 u.name as supervisor_name,
                 u.email as supervisor_email,
                 sp.department

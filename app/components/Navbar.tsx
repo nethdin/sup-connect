@@ -94,6 +94,7 @@ export default function Navbar() {
       return [
         { href: '/supervisor/dashboard', label: 'Dashboard' },
         { href: '/supervisor/requests', label: 'Booking Requests' },
+        { href: '/supervisor/appointments', label: 'Appointments' },
         { href: '/supervisor/availability', label: 'Manage Availability' },
         { href: '/messages', label: 'Messages' },
         { href: '/profile', label: 'My Profile' },

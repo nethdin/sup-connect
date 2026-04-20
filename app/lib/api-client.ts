@@ -716,10 +716,18 @@ export const schedulingAPI = {
     });
   },
 
-  updateAppointmentStatus: async (appointmentId: string, status: string): Promise<{ message: string }> => {
-    return apiRequest('/appointments', {
-      method: 'PUT',
-      body: JSON.stringify({ appointmentId, status }),
-    });
-  },
+   updateAppointmentStatus: async (appointmentId: string, status: string): Promise<{ message: string }> => {
+     return apiRequest('/appointments', {
+       method: 'PUT',
+       body: JSON.stringify({ appointmentId, status }),
+     });
+   },
+
+   getSupervisorAppointments: async (options?: { status?: string; upcoming?: boolean }): Promise<{ appointments: any[] }> => {
+     const params = new URLSearchParams();
+     if (options?.status) params.append('status', options.status);
+     if (options?.upcoming) params.append('upcoming', 'true');
+     const queryString = params.toString();
+     return apiRequest(`/supervisor/appointments${queryString ? '?' + queryString : ''}`);
+   },
 };
