@@ -1027,6 +1027,65 @@ export async function sendBookingRequest(request: NextRequest) {
   }
 }
 
+// ============================================
+// HELPER: Safe Cancel Request with Cleanup
+// ============================================
+// This function ensures that if an ACCEPTED request is cancelled, the supervisor's
+// current_slots is properly decremented and the assignment is removed
+async function safeCancelBookingRequest(requestId: string): Promise<void> {
+  const connection = await getPool().getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Get the booking request
+    const [bookingRequests] = await connection.query(
+      'SELECT * FROM booking_requests WHERE id = ?',
+      [requestId]
+    );
+    const bookingRequest = bookingRequests[0];
+
+    if (!bookingRequest) {
+      throw new Error('Booking request not found');
+    }
+
+    // If request was ACCEPTED, we need to clean up
+    if (bookingRequest.status === 'ACCEPTED') {
+      // Find and delete the assignment
+      const [assignments] = await connection.query(
+        'SELECT * FROM assignments WHERE student_id = ? AND supervisor_id = ?',
+        [bookingRequest.student_id, bookingRequest.supervisor_id]
+      );
+
+      if (assignments.length > 0) {
+        // Delete assignment
+        await connection.query(
+          'DELETE FROM assignments WHERE id = ?',
+          [assignments[0].id]
+        );
+      }
+
+      // Decrement supervisor's current_slots
+      await connection.query(
+        'UPDATE supervisor_profiles SET current_slots = GREATEST(current_slots - 1, 0) WHERE id = ?',
+        [bookingRequest.supervisor_id]
+      );
+    }
+
+    // Update request status to CANCELLED
+    await connection.query(
+      'UPDATE booking_requests SET status = ?, responded_at = NOW(), updated_at = NOW() WHERE id = ?',
+      ['CANCELLED', requestId]
+    );
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export async function cancelBookingRequest(requestId: string, request: NextRequest) {
   try {
     const auth = getUserFromRequest(request);
@@ -1050,18 +1109,16 @@ export async function cancelBookingRequest(requestId: string, request: NextReque
       );
     }
 
-    if (bookingRequest.status !== 'PENDING') {
+    // Allow cancelling both PENDING and ACCEPTED requests
+    if (!['PENDING', 'ACCEPTED'].includes(bookingRequest.status)) {
       return NextResponse.json(
-        { error: 'Can only cancel pending requests' },
+        { error: 'Can only cancel pending or accepted requests' },
         { status: 400 }
       );
     }
 
-    // Cancel the request
-    await query(
-      'UPDATE booking_requests SET status = ?, responded_at = NOW() WHERE id = ?',
-      ['CANCELLED', requestId]
-    );
+    // Use safe cancellation with proper cleanup
+    await safeCancelBookingRequest(requestId);
 
     const cancelledRequest = await queryOne<any>(
       'SELECT * FROM booking_requests WHERE id = ?',
@@ -1928,5 +1985,166 @@ export async function removeStudentAssignment(studentId: string, request: NextRe
     );
   } finally {
     connection.release();
+  }
+}
+
+// ============================================
+// DATA INTEGRITY & VALIDATION
+// ============================================
+
+/**
+ * Validates supervisor slot counts against actual assignments.
+ * Returns discrepancies and can optionally repair them.
+ */
+export async function validateSupervisorSlots(repair: boolean = false) {
+  try {
+    // Get all supervisors with their slot counts
+    const supervisors = await query(
+      `SELECT sp.id, sp.user_id, sp.max_slots, sp.current_slots, u.name, u.email
+       FROM supervisor_profiles sp
+       LEFT JOIN users u ON sp.user_id = u.id`
+    );
+
+    const issues: any[] = [];
+    const repairs: any[] = [];
+
+    for (const supervisor of supervisors) {
+      // Count ACCEPTED requests (should equal current_slots)
+      const [acceptedRequests] = await query(
+        'SELECT COUNT(*) as count FROM booking_requests WHERE supervisor_id = ? AND status = ?',
+        [supervisor.id, 'ACCEPTED']
+      );
+
+      // Count active assignments
+      const [activeAssignments] = await query(
+        'SELECT COUNT(*) as count FROM assignments WHERE supervisor_id = ?',
+        [supervisor.id]
+      );
+
+      const actualSlots = Math.max(acceptedRequests[0].count, activeAssignments[0].count);
+
+      if (supervisor.current_slots !== actualSlots) {
+        issues.push({
+          supervisorId: supervisor.id,
+          supervisorName: supervisor.name,
+          supervisorEmail: supervisor.email,
+          storedSlots: supervisor.current_slots,
+          actualSlots: actualSlots,
+          acceptedRequests: acceptedRequests[0].count,
+          activeAssignments: activeAssignments[0].count,
+          maxSlots: supervisor.max_slots,
+          discrepancy: supervisor.current_slots - actualSlots,
+        });
+
+        if (repair) {
+          // Repair the slot count
+          await query(
+            'UPDATE supervisor_profiles SET current_slots = ? WHERE id = ?',
+            [actualSlots, supervisor.id]
+          );
+
+          repairs.push({
+            supervisorId: supervisor.id,
+            supervisorName: supervisor.name,
+            oldValue: supervisor.current_slots,
+            newValue: actualSlots,
+          });
+        }
+      }
+    }
+
+    return {
+      timestamp: new Date().toISOString(),
+      issuesFound: issues.length > 0,
+      issues,
+      repairsApplied: repair ? repairs.length : 0,
+      repairs: repair ? repairs : [],
+      summary: {
+        totalSupervisors: supervisors.length,
+        supervisorsWithIssues: issues.length,
+        totalSlotsRecovered: issues.reduce((sum, i) => sum + Math.abs(i.discrepancy), 0),
+      },
+    };
+  } catch (error) {
+    console.error('Validate supervisor slots error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Also checks for orphaned bookings and assignments
+ */
+export async function validateDataIntegrity() {
+  try {
+    const validation: any = {
+      timestamp: new Date().toISOString(),
+      issues: [],
+    };
+
+    // Check for bookings referencing non-existent supervisors
+    const [orphanedBookingsSupervisor] = await query(
+      `SELECT COUNT(*) as count FROM booking_requests br
+       WHERE NOT EXISTS (SELECT 1 FROM supervisor_profiles sp WHERE sp.id = br.supervisor_id)`
+    );
+    if (orphanedBookingsSupervisor[0].count > 0) {
+      validation.issues.push({
+        type: 'ORPHANED_BOOKINGS_SUPERVISOR',
+        count: orphanedBookingsSupervisor[0].count,
+        description: 'Booking requests with non-existent supervisor',
+      });
+    }
+
+    // Check for bookings referencing non-existent students
+    const [orphanedBookingsStudent] = await query(
+      `SELECT COUNT(*) as count FROM booking_requests br
+       WHERE NOT EXISTS (SELECT 1 FROM student_profiles sp WHERE sp.user_id = br.student_id)`
+    );
+    if (orphanedBookingsStudent[0].count > 0) {
+      validation.issues.push({
+        type: 'ORPHANED_BOOKINGS_STUDENT',
+        count: orphanedBookingsStudent[0].count,
+        description: 'Booking requests with non-existent student',
+      });
+    }
+
+    // Check for assignments referencing non-existent supervisors
+    const [orphanedAssignmentsSupervisor] = await query(
+      `SELECT COUNT(*) as count FROM assignments a
+       WHERE NOT EXISTS (SELECT 1 FROM supervisor_profiles sp WHERE sp.id = a.supervisor_id)`
+    );
+    if (orphanedAssignmentsSupervisor[0].count > 0) {
+      validation.issues.push({
+        type: 'ORPHANED_ASSIGNMENTS_SUPERVISOR',
+        count: orphanedAssignmentsSupervisor[0].count,
+        description: 'Assignments with non-existent supervisor',
+      });
+    }
+
+    // Check for assignments without corresponding ACCEPTED booking
+    const [assignmentsWithoutBooking] = await query(
+      `SELECT COUNT(*) as count FROM assignments a
+       WHERE NOT EXISTS (
+         SELECT 1 FROM booking_requests br
+         WHERE br.student_id = a.student_id
+         AND br.supervisor_id = a.supervisor_id
+         AND br.status = 'ACCEPTED'
+       )`
+    );
+    if (assignmentsWithoutBooking[0].count > 0) {
+      validation.issues.push({
+        type: 'ASSIGNMENT_WITHOUT_BOOKING',
+        count: assignmentsWithoutBooking[0].count,
+        description: 'Assignments without corresponding ACCEPTED booking request',
+      });
+    }
+
+    // Get supervisor slot validation
+    const slotValidation = await validateSupervisorSlots(false);
+    validation.slotValidation = slotValidation;
+
+    return validation;
+  } catch (error) {
+    console.error('Validate data integrity error:', error);
+    throw error;
   }
 }
