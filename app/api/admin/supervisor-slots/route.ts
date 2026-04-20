@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSupervisorSlots } from '@/app/api/api-handlers';
-import { getUserFromRequest } from '@/app/lib/auth';
+import { validateSupervisorSlots, getUserFromRequest } from '@/app/api/api-handlers';
 
 /**
  * GET: View supervisor slot validation report

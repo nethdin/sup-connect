@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateDataIntegrity, validateSupervisorSlots } from '@/app/api/api-handlers';
-import { getUserFromRequest } from '@/app/lib/auth';
+import { validateDataIntegrity, validateSupervisorSlots, getUserFromRequest } from '@/app/api/api-handlers';
 
 /**
  * GET: Validate data integrity

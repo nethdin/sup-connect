@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { studentAPI, supervisorAPI } from '@/app/lib/api-client';
 import { Tag, SupervisorProfile } from '@/app/lib/types';
@@ -21,7 +21,7 @@ interface RecommendationItem {
 type SortOption = 'score' | 'match_count' | 'experience' | 'availability';
 type TabType = 'recommended' | 'browse';
 
-export default function StudentSupervisorsPage() {
+function StudentSupervisorsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { addToast } = useToast();
@@ -337,5 +337,20 @@ export default function StudentSupervisorsPage() {
                 </div>
             </main>
         </RouteGuard>
+    );
+}
+
+export default function StudentSupervisorsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-600 mt-4">Loading...</p>
+                </div>
+            </div>
+        }>
+            <StudentSupervisorsContent />
+        </Suspense>
     );
 }

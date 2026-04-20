@@ -1038,11 +1038,11 @@ async function safeCancelBookingRequest(requestId: string): Promise<void> {
     await connection.beginTransaction();
 
     // Get the booking request
-    const [bookingRequests] = await connection.query(
+    const [bookingRequests] = await connection.query<any[]>(
       'SELECT * FROM booking_requests WHERE id = ?',
       [requestId]
     );
-    const bookingRequest = bookingRequests[0];
+    const bookingRequest = bookingRequests?.[0];
 
     if (!bookingRequest) {
       throw new Error('Booking request not found');
@@ -1051,12 +1051,12 @@ async function safeCancelBookingRequest(requestId: string): Promise<void> {
     // If request was ACCEPTED, we need to clean up
     if (bookingRequest.status === 'ACCEPTED') {
       // Find and delete the assignment
-      const [assignments] = await connection.query(
+      const [assignments] = await connection.query<any[]>(
         'SELECT * FROM assignments WHERE student_id = ? AND supervisor_id = ?',
         [bookingRequest.student_id, bookingRequest.supervisor_id]
       );
 
-      if (assignments.length > 0) {
+      if (assignments && assignments.length > 0) {
         // Delete assignment
         await connection.query(
           'DELETE FROM assignments WHERE id = ?',
@@ -1999,7 +1999,7 @@ export async function removeStudentAssignment(studentId: string, request: NextRe
 export async function validateSupervisorSlots(repair: boolean = false) {
   try {
     // Get all supervisors with their slot counts
-    const supervisors = await query(
+    const supervisors = await query<any[]>(
       `SELECT sp.id, sp.user_id, sp.max_slots, sp.current_slots, u.name, u.email
        FROM supervisor_profiles sp
        LEFT JOIN users u ON sp.user_id = u.id`
@@ -2010,18 +2010,20 @@ export async function validateSupervisorSlots(repair: boolean = false) {
 
     for (const supervisor of supervisors) {
       // Count ACCEPTED requests (should equal current_slots)
-      const [acceptedRequests] = await query(
+      const acceptedRequestsResult = await query<any[]>(
         'SELECT COUNT(*) as count FROM booking_requests WHERE supervisor_id = ? AND status = ?',
         [supervisor.id, 'ACCEPTED']
       );
 
       // Count active assignments
-      const [activeAssignments] = await query(
+      const activeAssignmentsResult = await query<any[]>(
         'SELECT COUNT(*) as count FROM assignments WHERE supervisor_id = ?',
         [supervisor.id]
       );
 
-      const actualSlots = Math.max(acceptedRequests[0].count, activeAssignments[0].count);
+      const acceptedCount = acceptedRequestsResult[0]?.count || 0;
+      const activeCount = activeAssignmentsResult[0]?.count || 0;
+      const actualSlots = Math.max(acceptedCount, activeCount);
 
       if (supervisor.current_slots !== actualSlots) {
         issues.push({
@@ -2030,8 +2032,8 @@ export async function validateSupervisorSlots(repair: boolean = false) {
           supervisorEmail: supervisor.email,
           storedSlots: supervisor.current_slots,
           actualSlots: actualSlots,
-          acceptedRequests: acceptedRequests[0].count,
-          activeAssignments: activeAssignments[0].count,
+          acceptedRequests: acceptedCount,
+          activeAssignments: activeCount,
           maxSlots: supervisor.max_slots,
           discrepancy: supervisor.current_slots - actualSlots,
         });
@@ -2082,11 +2084,11 @@ export async function validateDataIntegrity() {
     };
 
     // Check for bookings referencing non-existent supervisors
-    const [orphanedBookingsSupervisor] = await query(
+    const orphanedBookingsSupervisor = await query<any[]>(
       `SELECT COUNT(*) as count FROM booking_requests br
        WHERE NOT EXISTS (SELECT 1 FROM supervisor_profiles sp WHERE sp.id = br.supervisor_id)`
     );
-    if (orphanedBookingsSupervisor[0].count > 0) {
+    if (orphanedBookingsSupervisor[0]?.count > 0) {
       validation.issues.push({
         type: 'ORPHANED_BOOKINGS_SUPERVISOR',
         count: orphanedBookingsSupervisor[0].count,
@@ -2095,11 +2097,11 @@ export async function validateDataIntegrity() {
     }
 
     // Check for bookings referencing non-existent students
-    const [orphanedBookingsStudent] = await query(
+    const orphanedBookingsStudent = await query<any[]>(
       `SELECT COUNT(*) as count FROM booking_requests br
        WHERE NOT EXISTS (SELECT 1 FROM student_profiles sp WHERE sp.user_id = br.student_id)`
     );
-    if (orphanedBookingsStudent[0].count > 0) {
+    if (orphanedBookingsStudent[0]?.count > 0) {
       validation.issues.push({
         type: 'ORPHANED_BOOKINGS_STUDENT',
         count: orphanedBookingsStudent[0].count,
@@ -2108,11 +2110,11 @@ export async function validateDataIntegrity() {
     }
 
     // Check for assignments referencing non-existent supervisors
-    const [orphanedAssignmentsSupervisor] = await query(
+    const orphanedAssignmentsSupervisor = await query<any[]>(
       `SELECT COUNT(*) as count FROM assignments a
        WHERE NOT EXISTS (SELECT 1 FROM supervisor_profiles sp WHERE sp.id = a.supervisor_id)`
     );
-    if (orphanedAssignmentsSupervisor[0].count > 0) {
+    if (orphanedAssignmentsSupervisor[0]?.count > 0) {
       validation.issues.push({
         type: 'ORPHANED_ASSIGNMENTS_SUPERVISOR',
         count: orphanedAssignmentsSupervisor[0].count,
@@ -2121,7 +2123,7 @@ export async function validateDataIntegrity() {
     }
 
     // Check for assignments without corresponding ACCEPTED booking
-    const [assignmentsWithoutBooking] = await query(
+    const assignmentsWithoutBooking = await query<any[]>(
       `SELECT COUNT(*) as count FROM assignments a
        WHERE NOT EXISTS (
          SELECT 1 FROM booking_requests br
@@ -2130,7 +2132,7 @@ export async function validateDataIntegrity() {
          AND br.status = 'ACCEPTED'
        )`
     );
-    if (assignmentsWithoutBooking[0].count > 0) {
+    if (assignmentsWithoutBooking[0]?.count > 0) {
       validation.issues.push({
         type: 'ASSIGNMENT_WITHOUT_BOOKING',
         count: assignmentsWithoutBooking[0].count,
