@@ -210,7 +210,7 @@ export default function StudentDashboard() {
                             <i className="fa-solid fa-user w-4"></i>
                             <span className="font-medium">Supervisor:</span>
                             <Link
-                              href={`/supervisors/${pendingRequest.supervisor_id}`}
+                              href={`/student/supervisors/${pendingRequest.supervisor_id}`}
                               className="text-brand-600 hover:underline"
                             >
                               {pendingRequest.supervisor_name}
@@ -271,7 +271,7 @@ export default function StudentDashboard() {
                         </Link>
                       ) : (
                         <Link
-                          href="/student/recommendations"
+                          href="/student/supervisors"
                           className="inline-block px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
                         >
                           <i className="fa-solid fa-search mr-2"></i>
@@ -411,16 +411,10 @@ export default function StudentDashboard() {
                 <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
                   <Link
-                    href="/supervisors"
+                    href="/student/supervisors"
                     className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition"
                   >
-                    Browse Supervisors
-                  </Link>
-                  <Link
-                    href="/student/recommendations"
-                    className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition"
-                  >
-                    View Recommendations
+                    Find Supervisors
                   </Link>
                   <Link
                     href="/student/idea"

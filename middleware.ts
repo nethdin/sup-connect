@@ -33,7 +33,7 @@ const ROUTE_RULES: {
   '/login': { requiresAuth: false },
   '/register': { requiresAuth: false },
   '/student/dashboard': { requiresAuth: true, allowedRoles: ['STUDENT'] },
-  '/supervisors': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'STUDENT'] },
+  '/student/supervisors': { requiresAuth: true, allowedRoles: ['STUDENT'] },
   '/supervisor/dashboard': { requiresAuth: true, allowedRoles: ['SUPERVISOR'] },
   '/profile': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN', 'STUDENT', 'SUPERVISOR'] },
   '/admin': { requiresAuth: true, allowedRoles: ['ADMIN', 'SUPER_ADMIN'] },

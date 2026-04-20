@@ -82,9 +82,7 @@ export default function Navbar() {
     if (user?.role === 'STUDENT') {
       return [
         { href: '/student/dashboard', label: 'Dashboard' },
-        { href: '/supervisors', label: 'Browse Supervisors' },
-        { href: '/student/recommendations', label: 'My Recommendations' },
-        { href: '/student/requests', label: 'My Requests' },
+        { href: '/student/supervisors', label: 'Find Supervisors' },
         { href: '/student/idea', label: 'My Project Idea' },
         { href: '/student/appointments', label: 'My Appointments' },
         { href: '/messages', label: 'Messages' },
