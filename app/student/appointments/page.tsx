@@ -262,7 +262,7 @@ export default function AppointmentsPage() {
                                                     <span className={`px-3 py-1 rounded-full text-sm ${getStatusBadge(apt.status)}`}>
                                                         {apt.status}
                                                     </span>
-                                                    {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
+                                                    {(apt.status === 'PENDING') && (
                                                         <button
                                                             onClick={() => handleCancel(apt.id)}
                                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"

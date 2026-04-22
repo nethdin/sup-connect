@@ -56,7 +56,7 @@ export default function NotificationsPage() {
     const deleteNotification = async (notificationId: string) => {
         try {
             setDeleting(notificationId);
-            await notificationAPI.deleteNotification(notificationId);
+            await notificationAPI.delete(notificationId);
             setNotifications(prev => prev.filter(n => n.id !== notificationId));
             addToast('Notification deleted', 'success');
         } catch (err) {
@@ -71,7 +71,7 @@ export default function NotificationsPage() {
         if (!confirm('Are you sure you want to delete all notifications?')) return;
 
         try {
-            await notificationAPI.deleteNotification(undefined, true);
+            await notificationAPI.delete();
             setNotifications([]);
             addToast('All notifications deleted', 'success');
         } catch (err) {

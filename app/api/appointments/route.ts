@@ -246,9 +246,17 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        // Students can only cancel
-        if (isStudent && status !== 'CANCELLED') {
-            return NextResponse.json({ error: 'Students can only cancel appointments' }, { status: 403 });
+        // Students can only cancel PENDING appointments (not confirmed/completed ones)
+        if (isStudent) {
+            if (status !== 'CANCELLED') {
+                return NextResponse.json({ error: 'Students can only cancel appointments' }, { status: 403 });
+            }
+            if (appointment.status === 'CONFIRMED') {
+                return NextResponse.json({ error: 'Cannot cancel a confirmed appointment. Contact your supervisor.' }, { status: 403 });
+            }
+            if (appointment.status === 'COMPLETED' || appointment.status === 'CANCELLED') {
+                return NextResponse.json({ error: `Cannot cancel a ${appointment.status.toLowerCase()} appointment` }, { status: 403 });
+            }
         }
 
         await query('UPDATE appointments SET status = ? WHERE id = ?', [status, appointmentId]);
