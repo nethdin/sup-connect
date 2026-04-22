@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Assignment, Meeting } from '@/app/lib/types';
-import MeetingList from '@/app/components/common/MeetingList';
+import { formatDateTime } from '@/app/lib/utils';
 import TagDisplay from '@/app/components/common/TagDisplay';
 import Link from 'next/link';
 import { useToast } from '@/app/context/ToastContext';
@@ -386,22 +386,103 @@ export default function StudentDashboard() {
                 )}
               </div>
 
-              {/* Upcoming Meetings */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Upcoming Meetings
-                </h2>
-                {meetings.length > 0 ? (
-                  <MeetingList
-                    meetings={meetings}
-                    onAddNotes={(id) => addToast(`Add notes to meeting ${id}`, 'info')}
-                  />
-                ) : (
-                  <p className="text-gray-600 text-center py-8">
-                    No upcoming meetings scheduled
+              {/* Next Meeting */}
+              {meetings.length > 0 ? (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    <i className="fa-solid fa-calendar-check mr-2 text-blue-600"></i>
+                    Next Meeting
+                  </h2>
+                  
+                  {meetings[0] ? (
+                    <div className="space-y-4">
+                      {/* Meeting Card */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+                                meetings[0].status === 'CONFIRMED' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : meetings[0].status === 'PENDING'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                <i className={`fa-solid ${
+                                  meetings[0].status === 'CONFIRMED' ? 'fa-check-circle' : 'fa-clock'
+                                }`}></i>
+                                {meetings[0].status}
+                              </span>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">
+                              {formatDateTime(meetings[0].dateTime)}
+                            </p>
+                            {meetings[0].duration && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                <i className="fa-solid fa-hourglass-end mr-1"></i>
+                                {meetings[0].duration} minutes
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Supervisor Info (if not already assigned) */}
+                        {meetings[0].supervisor && (
+                          <div className="border-t border-blue-200 pt-3 mt-3">
+                            <p className="text-xs text-gray-600 mb-2">With Supervisor:</p>
+                            <p className="font-semibold text-gray-900">
+                              {meetings[0].supervisor.name}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Notes Display */}
+                        {meetings[0].notes && (
+                          <div className="mt-3 p-3 bg-white rounded border border-blue-100">
+                            <p className="text-xs font-semibold text-gray-700 mb-1">Notes:</p>
+                            <p className="text-sm text-gray-600">{meetings[0].notes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Link
+                          href="/student/appointments"
+                          className="flex-1 px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition font-medium"
+                        >
+                          View All Appointments
+                        </Link>
+                        <Link
+                          href={`/messages?userId=${assignment?.supervisor?.user?.id}&userName=${encodeURIComponent(assignment?.supervisor?.user?.name || 'Supervisor')}&userRole=SUPERVISOR`}
+                          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition font-medium"
+                        >
+                          <i className="fa-solid fa-message mr-2"></i>
+                          Message Supervisor
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 text-center py-6">Loading meeting details...</p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    <i className="fa-solid fa-calendar-check mr-2 text-gray-400"></i>
+                    No Upcoming Meetings
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    You don't have any scheduled meetings yet.
                   </p>
-                )}
-              </div>
+                  <Link
+                    href="/student/appointments"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                  >
+                    Schedule a Meeting
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
