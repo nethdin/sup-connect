@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "sup-connect-api",
-    "name": "SupConnect API",
-    "description": "Complete API collection for SupConnect - Academic Supervisor Connection Platform",
+    "name": "SupConnect API - Verified",
+    "description": "Complete verified API collection for SupConnect - Academic Supervisor Connection Platform. Auto-captures JWT tokens from auth endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -10,7 +10,25 @@
       "name": "Authentication",
       "item": [
         {
-          "name": "Register User",
+          "name": "Register Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('TOKEN', jsonData.token);",
+                  "    pm.environment.set('STUDENT_TOKEN', jsonData.token);",
+                  "    pm.environment.set('CURRENT_USER_ID', jsonData.user.id);",
+                  "    pm.environment.set('CURRENT_USER_ROLE', jsonData.user.role);",
+                  "    console.log('STUDENT_TOKEN captured: ' + jsonData.token.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -21,7 +39,85 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"John Student\",\n  \"role\": \"STUDENT\",\n  \"department\": \"Computer Science\",\n  \"registrationNo\": \"CS001\",\n  \"researchInterests\": \"AI, Machine Learning\",\n  \"preferredFields\": [\"AI\", \"ML\"]\n}"
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"John Student\",\n  \"role\": \"STUDENT\",\n  \"department\": \"Computer Science\",\n  \"registrationNo\": \"CS001\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/register",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Supervisor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('TOKEN', jsonData.token);",
+                  "    pm.environment.set('SUPERVISOR_TOKEN', jsonData.token);",
+                  "    pm.environment.set('CURRENT_USER_ID', jsonData.user.id);",
+                  "    pm.environment.set('CURRENT_USER_ROLE', jsonData.user.role);",
+                  "    console.log('SUPERVISOR_TOKEN captured: ' + jsonData.token.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"supervisor@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"Dr. Jane Smith\",\n  \"role\": \"SUPERVISOR\",\n  \"department\": \"Computer Science\",\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"bio\": \"Expert in AI and Machine Learning with 5 years of experience\",\n  \"maxSlots\": 10,\n  \"yearsOfExperience\": 5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/register",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('TOKEN', jsonData.token);",
+                  "    pm.environment.set('ADMIN_TOKEN', jsonData.token);",
+                  "    pm.environment.set('CURRENT_USER_ID', jsonData.user.id);",
+                  "    pm.environment.set('CURRENT_USER_ROLE', jsonData.user.role);",
+                  "    console.log('ADMIN_TOKEN captured: ' + jsonData.token.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"Admin User\",\n  \"role\": \"ADMIN\",\n  \"department\": \"Administration\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/auth/register",
@@ -32,6 +128,32 @@
         },
         {
           "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('TOKEN', jsonData.token);",
+                  "    var role = jsonData.user.role;",
+                  "    if (role === 'STUDENT') {",
+                  "        pm.environment.set('STUDENT_TOKEN', jsonData.token);",
+                  "    } else if (role === 'SUPERVISOR') {",
+                  "        pm.environment.set('SUPERVISOR_TOKEN', jsonData.token);",
+                  "    } else if (role === 'ADMIN' || role === 'SUPER_ADMIN') {",
+                  "        pm.environment.set('ADMIN_TOKEN', jsonData.token);",
+                  "    }",
+                  "    pm.environment.set('CURRENT_USER_ID', jsonData.user.id);",
+                  "    pm.environment.set('CURRENT_USER_ROLE', role);",
+                  "    console.log('Login successful for ' + role + ' - Token captured');",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -75,6 +197,23 @@
               "path": ["api", "auth", "verify-password"]
             }
           }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/account",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "account"]
+            }
+          }
         }
       ]
     },
@@ -114,7 +253,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Student Updated\",\n  \"email\": \"student@example.com\",\n  \"password\": \"NewPass123\",\n  \"profilePicture\": \"<base64 encoded image>\"\n}"
+              "raw": "{\n  \"name\": \"John Student Updated\",\n  \"email\": \"student.updated@example.com\",\n  \"password\": \"NewPass123\",\n  \"profile\": {\n    \"department\": \"Computer Science\",\n    \"registrationNo\": \"CS001\"\n  }\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/user/profile",
@@ -134,289 +273,19 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/auth/account",
+              "raw": "{{BASE_URL}}/api/user/profile",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "auth", "account"]
+              "path": ["api", "user", "profile"]
             }
           }
         }
       ]
     },
     {
-      "name": "Admin - Departments",
+      "name": "Tags (Public)",
       "item": [
         {
-          "name": "Get Departments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/departments?all=true",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "departments"],
-              "query": [
-                {
-                  "key": "all",
-                  "value": "true",
-                  "description": "Include inactive departments (admin only)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Create Department",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Computer Science\",\n  \"code\": \"CS\"\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/departments",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "departments"]
-            }
-          }
-        },
-        {
-          "name": "Update Department",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id\": \"dept-id-123\",\n  \"name\": \"Computer Science\",\n  \"code\": \"CS\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/departments",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "departments"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin - Tags",
-      "item": [
-        {
-          "name": "Get All Tags (Admin)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/tags",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "tags"]
-            }
-          }
-        },
-        {
-          "name": "Create Tag",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"category\": \"Artificial Intelligence\"\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/tags",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "tags"]
-            }
-          }
-        },
-        {
-          "name": "Update Tag",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id\": \"tag-id-123\",\n  \"name\": \"Machine Learning\",\n  \"category\": \"Artificial Intelligence\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/tags",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "tags"]
-            }
-          }
-        },
-        {
-          "name": "Delete Tag",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/tags",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "tags"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin - Users",
-      "item": [
-        {
-          "name": "Create User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"newsupervisor@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"Dr. Jane Smith\",\n  \"role\": \"SUPERVISOR\",\n  \"department\": \"Computer Science\",\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"bio\": \"Expert in AI and ML\",\n  \"maxSlots\": 10,\n  \"yearsOfExperience\": 5\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/users",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "users"]
-            }
-          }
-        },
-        {
-          "name": "Update User",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Dr. Jane Smith Updated\",\n  \"email\": \"newsupervisor@example.com\",\n  \"password\": \"NewPassword123\",\n  \"role\": \"SUPERVISOR\"\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/users/user-id-123",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "users", "user-id-123"]
-            }
-          }
-        },
-        {
-          "name": "Delete User",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{ADMIN_TOKEN}}"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/users/user-id-123",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "users", "user-id-123"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin - Super Admin Transfer",
-      "item": [
-        {
-          "name": "Transfer SUPER_ADMIN Role",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{SUPER_ADMIN_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"targetUserId\": \"admin-user-id-123\",\n  \"password\": \"CurrentAdminPassword123\",\n  \"confirmationPhrase\": \"TRANSFER SUPER ADMIN\"\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/admin/transfer-super-admin",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "admin", "transfer-super-admin"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Tags",
-      "item": [
-        {
-          "name": "Get Active Tags",
+          "name": "Get All Active Tags",
           "request": {
             "method": "GET",
             "header": [],
@@ -450,7 +319,7 @@
                 {
                   "key": "available",
                   "value": "true",
-                  "description": "Filter by available slots"
+                  "description": "Filter by available slots (true|false)"
                 }
               ]
             }
@@ -460,16 +329,11 @@
           "name": "Get Supervisor by ID",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{TOKEN}}"
-              }
-            ],
+            "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisors/supervisor-id-123",
+              "raw": "{{BASE_URL}}/api/supervisors/supervisor-profile-id-123",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisors", "supervisor-id-123"]
+              "path": ["api", "supervisors", "supervisor-profile-id-123"]
             }
           }
         }
@@ -496,7 +360,7 @@
           }
         },
         {
-          "name": "Create/Update Supervisor Profile",
+          "name": "Create Supervisor Profile",
           "request": {
             "method": "POST",
             "header": [
@@ -511,7 +375,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"department\": \"Computer Science\",\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"bio\": \"Experienced supervisor in AI and ML projects\",\n  \"yearsOfExperience\": 5,\n  \"maxSlots\": 10,\n  \"profilePicture\": \"<base64 encoded image>\"\n}"
+              "raw": "{\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"bio\": \"Experienced supervisor in AI and ML projects with focus on neural networks\",\n  \"maxSlots\": 10\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/supervisor/profile",
@@ -526,7 +390,7 @@
       "name": "Supervisor - Availability",
       "item": [
         {
-          "name": "Get Availability",
+          "name": "Get Availability Slots",
           "request": {
             "method": "GET",
             "header": [
@@ -536,14 +400,15 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/availability?supervisorId=profile-id-123",
+              "raw": "{{BASE_URL}}/api/supervisor/availability",
               "host": ["{{BASE_URL}}"],
               "path": ["api", "supervisor", "availability"],
               "query": [
                 {
                   "key": "supervisorId",
-                  "value": "profile-id-123",
-                  "description": "Optional: specific supervisor profile ID"
+                  "value": "supervisor-profile-id-123",
+                  "description": "Optional: specific supervisor profile ID",
+                  "disabled": true
                 }
               ]
             }
@@ -565,32 +430,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"date\": \"2024-04-20\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"12:00:00\",\n  \"slotDuration\": 30\n}"
-            },
-            "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/availability",
-              "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "availability"]
-            }
-          }
-        },
-        {
-          "name": "Update Availability Slot",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{SUPERVISOR_TOKEN}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id\": \"availability-slot-id\",\n  \"is_available\": true\n}"
+              "raw": "{\n  \"date\": \"2026-04-25\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"12:00:00\",\n  \"slotDuration\": 30\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/supervisor/availability",
@@ -610,9 +450,16 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/availability",
+              "raw": "{{BASE_URL}}/api/supervisor/availability?id=availability-slot-id-123",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "availability"]
+              "path": ["api", "supervisor", "availability"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "availability-slot-id-123",
+                  "description": "Availability slot ID"
+                }
+              ]
             }
           }
         }
@@ -634,7 +481,15 @@
             "url": {
               "raw": "{{BASE_URL}}/api/supervisor/requests",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "requests"]
+              "path": ["api", "supervisor", "requests"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Filter by status (PENDING|ACCEPTED|DECLINED|CANCELLED)",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -721,9 +576,9 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-id-123",
+              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-user-id-123",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "assignments", "student-id-123"]
+              "path": ["api", "supervisor", "assignments", "student-user-id-123"]
             }
           }
         },
@@ -746,9 +601,9 @@
               "raw": "{}"
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-id-123/toggle-edit",
+              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-user-id-123/toggle-edit",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "assignments", "student-id-123", "toggle-edit"]
+              "path": ["api", "supervisor", "assignments", "student-user-id-123", "toggle-edit"]
             }
           }
         },
@@ -763,9 +618,9 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-id-123",
+              "raw": "{{BASE_URL}}/api/supervisor/assignments/student-user-id-123",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "supervisor", "assignments", "student-id-123"]
+              "path": ["api", "supervisor", "assignments", "student-user-id-123"]
             }
           }
         }
@@ -816,6 +671,42 @@
       ]
     },
     {
+      "name": "Supervisor - Appointments",
+      "item": [
+        {
+          "name": "Get Supervisor Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{SUPERVISOR_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/supervisor/appointments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "supervisor", "appointments"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Filter by status",
+                  "disabled": true
+                },
+                {
+                  "key": "upcoming",
+                  "value": "true",
+                  "description": "Show only upcoming appointments",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Student - Project Idea",
       "item": [
         {
@@ -851,7 +742,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"AI-powered Recommendation System\",\n  \"description\": \"A machine learning system that recommends academic supervisors based on project description and supervisor expertise. This system uses advanced algorithms to match students with supervisors based on research interests, expertise, and availability. The implementation involves data preprocessing, model training, and integration with the academic platform.\",\n  \"tags\": [\"Machine Learning\", \"AI\", \"Python\", \"Recommendation Systems\"],\n  \"attachments\": []\n}"
+              "raw": "{\n  \"title\": \"AI-powered Recommendation System\",\n  \"description\": \"A machine learning system that recommends academic supervisors based on project description and supervisor expertise. This system uses advanced algorithms to match students with supervisors based on research interests, expertise, and availability. The implementation involves data preprocessing, model training, and integration with the academic platform.\",\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"attachments\": []\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/student/idea",
@@ -863,7 +754,7 @@
       ]
     },
     {
-      "name": "Student - Requests",
+      "name": "Student - Booking Requests",
       "item": [
         {
           "name": "Get Student Requests",
@@ -948,9 +839,16 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/student/matches",
+              "raw": "{{BASE_URL}}/api/student/matches?sortBy=match_count",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "student", "matches"]
+              "path": ["api", "student", "matches"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "match_count",
+                  "description": "Sort by: match_count|score|experience|availability"
+                }
+              ]
             }
           }
         }
@@ -979,7 +877,7 @@
       ]
     },
     {
-      "name": "Appointments",
+      "name": "Appointments & Meetings",
       "item": [
         {
           "name": "Get Appointments",
@@ -999,7 +897,7 @@
                 {
                   "key": "status",
                   "value": "CONFIRMED",
-                  "description": "Filter by appointment status"
+                  "description": "Filter by status (PENDING|CONFIRMED|CANCELLED|COMPLETED)"
                 },
                 {
                   "key": "upcoming",
@@ -1026,7 +924,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"availabilityId\": \"availability-slot-id-123\",\n  \"dateTime\": \"2024-04-20T10:00:00Z\",\n  \"notes\": \"Discuss project proposal\"\n}"
+              "raw": "{\n  \"availabilityId\": \"availability-slot-id-123\",\n  \"dateTime\": \"2026-04-25T10:00:00Z\",\n  \"notes\": \"Discuss project proposal\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/appointments",
@@ -1034,20 +932,15 @@
               "path": ["api", "appointments"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Availability - Book Meeting Slot",
-      "item": [
+        },
         {
-          "name": "Book Meeting Slot",
+          "name": "Update Appointment Status",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{STUDENT_TOKEN}}"
+                "value": "Bearer {{TOKEN}}"
               },
               {
                 "key": "Content-Type",
@@ -1056,20 +949,15 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"supervisorId\": \"supervisor-id-123\",\n  \"date\": \"2024-04-20\",\n  \"time\": \"10:00:00\"\n}"
+              "raw": "{\n  \"appointmentId\": \"appointment-id-123\",\n  \"status\": \"CONFIRMED\"\n}"
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/availability/book",
+              "raw": "{{BASE_URL}}/api/appointments",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "availability", "book"]
+              "path": ["api", "appointments"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Meetings",
-      "item": [
+        },
         {
           "name": "Get Meetings",
           "request": {
@@ -1081,9 +969,16 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/meetings",
+              "raw": "{{BASE_URL}}/api/meetings?upcoming=true",
               "host": ["{{BASE_URL}}"],
-              "path": ["api", "meetings"]
+              "path": ["api", "meetings"],
+              "query": [
+                {
+                  "key": "upcoming",
+                  "value": "true",
+                  "description": "Show only upcoming meetings"
+                }
+              ]
             }
           }
         }
@@ -1195,6 +1090,31 @@
               "path": ["api", "notifications"]
             }
           }
+        },
+        {
+          "name": "Delete All Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"all\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/notifications",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "notifications"]
+            }
+          }
         }
       ]
     },
@@ -1298,12 +1218,350 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"description\": \"This project aims to develop a machine learning model that can predict academic performance based on student engagement metrics and learning patterns using neural networks and data analytics.\"\n}"
+              "raw": "{\n  \"description\": \"This project aims to develop a machine learning model that can predict academic performance based on student engagement metrics and learning patterns using neural networks and data analytics techniques. The system will incorporate deep learning algorithms for better accuracy.\"\n}"
             },
             "url": {
               "raw": "{{BASE_URL}}/api/ai/suggest-tags",
               "host": ["{{BASE_URL}}"],
               "path": ["api", "ai", "suggest-tags"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newsupervisor@example.com\",\n  \"password\": \"SecurePass123\",\n  \"name\": \"Dr. Jane Smith\",\n  \"role\": \"SUPERVISOR\",\n  \"department\": \"Computer Science\",\n  \"tags\": [\"Machine Learning\", \"AI\"],\n  \"bio\": \"Expert in AI and ML with 5 years of experience\",\n  \"maxSlots\": 10,\n  \"yearsOfExperience\": 5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users?role=STUDENT",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "STUDENT",
+                  "description": "Filter by role (STUDENT|SUPERVISOR|ADMIN|SUPER_ADMIN)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/user-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "users", "user-id-123"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Jane Smith Updated\",\n  \"email\": \"janesmith.updated@example.com\",\n  \"role\": \"SUPERVISOR\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/user-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "users", "user-id-123"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/user-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "users", "user-id-123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Departments",
+      "item": [
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/departments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "departments"],
+              "query": [
+                {
+                  "key": "all",
+                  "value": "true",
+                  "description": "Include inactive departments (admin only)",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Computer Science\",\n  \"code\": \"CS\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/departments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"dept-id-123\",\n  \"name\": \"Computer Science\",\n  \"code\": \"CS\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/departments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/departments?id=dept-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "departments"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "dept-id-123",
+                  "description": "Department ID"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Tags",
+      "item": [
+        {
+          "name": "Get All Tags (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/tags",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Create Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"category\": \"Artificial Intelligence\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/tags",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Update Tag",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"tag-id-123\",\n  \"name\": \"Machine Learning\",\n  \"category\": \"Artificial Intelligence\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/tags",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Delete Tag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/tags?id=tag-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "tags"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "tag-id-123",
+                  "description": "Tag ID"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Super Admin Transfer",
+      "item": [
+        {
+          "name": "Transfer SUPER_ADMIN Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{SUPER_ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetUserId\": \"admin-user-id-123\",\n  \"password\": \"CurrentAdminPassword123\",\n  \"confirmationPhrase\": \"TRANSFER SUPER ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/transfer-super-admin",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "admin", "transfer-super-admin"]
             }
           }
         }
@@ -1314,37 +1572,50 @@
     {
       "key": "BASE_URL",
       "value": "http://localhost:3000",
-      "type": "string"
+      "type": "string",
+      "description": "Base URL of the SupConnect API server"
     },
     {
       "key": "TOKEN",
       "value": "",
       "type": "string",
-      "description": "Authentication token for general user"
+      "description": "Current authenticated user JWT token (auto-captured from login/register)"
     },
     {
       "key": "STUDENT_TOKEN",
       "value": "",
       "type": "string",
-      "description": "Authentication token for student user"
+      "description": "Student user JWT token (auto-captured from student register/login)"
     },
     {
       "key": "SUPERVISOR_TOKEN",
       "value": "",
       "type": "string",
-      "description": "Authentication token for supervisor user"
+      "description": "Supervisor user JWT token (auto-captured from supervisor register/login)"
     },
     {
       "key": "ADMIN_TOKEN",
       "value": "",
       "type": "string",
-      "description": "Authentication token for admin user"
+      "description": "Admin user JWT token (auto-captured from admin register/login)"
     },
     {
       "key": "SUPER_ADMIN_TOKEN",
       "value": "",
       "type": "string",
-      "description": "Authentication token for super admin user"
+      "description": "Super Admin user JWT token (auto-captured from super admin login)"
+    },
+    {
+      "key": "CURRENT_USER_ID",
+      "value": "",
+      "type": "string",
+      "description": "Current authenticated user ID (auto-captured)"
+    },
+    {
+      "key": "CURRENT_USER_ROLE",
+      "value": "",
+      "type": "string",
+      "description": "Current authenticated user role (auto-captured)"
     }
   ]
 }
