@@ -87,6 +87,18 @@ export default function StudentDashboard() {
     }
   };
 
+  // Get the next meeting to display - prioritize CONFIRMED, then PENDING
+  const getNextMeeting = () => {
+    if (meetings.length === 0) return null;
+    
+    // First, try to find a CONFIRMED meeting
+    const confirmedMeeting = meetings.find(m => m.status === 'CONFIRMED');
+    if (confirmedMeeting) return confirmedMeeting;
+    
+    // Fall back to the first PENDING meeting
+    return meetings[0];
+  };
+
   const content = () => {
     if (loading) {
       return (
@@ -387,14 +399,16 @@ export default function StudentDashboard() {
               </div>
 
               {/* Next Meeting */}
-              {meetings.length > 0 ? (
+              {getNextMeeting() ? (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
                     <i className="fa-solid fa-calendar-check mr-2 text-blue-600"></i>
                     Next Meeting
                   </h2>
                   
-                  {meetings[0] ? (
+                  {(() => {
+                    const nextMeeting = getNextMeeting();
+                    return nextMeeting ? (
                     <div className="space-y-4">
                       {/* Meeting Card */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-5">
@@ -402,45 +416,45 @@ export default function StudentDashboard() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                                meetings[0].status === 'CONFIRMED' 
+                                nextMeeting.status === 'CONFIRMED' 
                                   ? 'bg-green-100 text-green-700' 
-                                  : meetings[0].status === 'PENDING'
+                                  : nextMeeting.status === 'PENDING'
                                   ? 'bg-yellow-100 text-yellow-700'
                                   : 'bg-gray-100 text-gray-700'
                               }`}>
                                 <i className={`fa-solid ${
-                                  meetings[0].status === 'CONFIRMED' ? 'fa-check-circle' : 'fa-clock'
+                                  nextMeeting.status === 'CONFIRMED' ? 'fa-check-circle' : 'fa-clock'
                                 }`}></i>
-                                {meetings[0].status}
+                                {nextMeeting.status}
                               </span>
                             </div>
                             <p className="text-2xl font-bold text-gray-900">
-                              {formatDateTime(meetings[0].dateTime)}
+                              {formatDateTime(nextMeeting.dateTime)}
                             </p>
-                            {meetings[0].duration && (
+                            {nextMeeting.duration && (
                               <p className="text-sm text-gray-600 mt-1">
                                 <i className="fa-solid fa-hourglass-end mr-1"></i>
-                                {meetings[0].duration} minutes
+                                {nextMeeting.duration} minutes
                               </p>
                             )}
                           </div>
                         </div>
 
                         {/* Supervisor Info (if not already assigned) */}
-                        {meetings[0].supervisor && (
+                        {nextMeeting.supervisor && (
                           <div className="border-t border-blue-200 pt-3 mt-3">
                             <p className="text-xs text-gray-600 mb-2">With Supervisor:</p>
                             <p className="font-semibold text-gray-900">
-                              {meetings[0].supervisor.name}
+                              {nextMeeting.supervisor.name}
                             </p>
                           </div>
                         )}
 
                         {/* Notes Display */}
-                        {meetings[0].notes && (
+                        {nextMeeting.notes && (
                           <div className="mt-3 p-3 bg-white rounded border border-blue-100">
                             <p className="text-xs font-semibold text-gray-700 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-600">{meetings[0].notes}</p>
+                            <p className="text-sm text-gray-600">{nextMeeting.notes}</p>
                           </div>
                         )}
                       </div>
@@ -462,9 +476,10 @@ export default function StudentDashboard() {
                         </Link>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-gray-600 text-center py-6">Loading meeting details...</p>
-                  )}
+                    ) : (
+                      <p className="text-gray-600 text-center py-6">Loading meeting details...</p>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
