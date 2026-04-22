@@ -2,7 +2,8 @@
 
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
+  const locale = typeof navigator !== 'undefined' ? navigator.language || 'en-US' : 'en-US';
+  return d.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -11,7 +12,8 @@ export function formatDate(date: Date | string): string {
 
 export function formatDateTime(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleString('en-US', {
+  const locale = typeof navigator !== 'undefined' ? navigator.language || 'en-US' : 'en-US';
+  return d.toLocaleString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

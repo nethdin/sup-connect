@@ -51,12 +51,21 @@ export async function GET(request: NextRequest) {
         }
 
         if (upcoming) {
-            sql += ' AND a.date_time >= NOW()';
+            sql += ' AND DATE(a.date_time) >= CURDATE()';
         }
 
         sql += ' ORDER BY a.date_time ASC';
 
         const appointments = await query<any[]>(sql, params);
+        
+        console.log('DEBUG - Appointments Query:', {
+            sql: sql.substring(0, 100),
+            params,
+            userId: auth.userId,
+            resultCount: appointments.length,
+            upcoming: upcoming,
+            status: status
+        });
 
         const formattedAppointments = appointments.map(apt => ({
             id: apt.id,
@@ -153,6 +162,14 @@ export async function POST(request: NextRequest) {
 
         // Create the appointment
         const id = uuidv4();
+        console.log('DEBUG - Creating appointment:', {
+            id,
+            availabilityId,
+            studentId: auth.userId,
+            supervisorId: availability.supervisor_id,
+            dateTime,
+            duration: availability.slot_duration
+        });
         await query(
             `INSERT INTO appointments (id, availability_id, student_id, supervisor_id, date_time, duration, notes) 
              VALUES (?, ?, ?, ?, ?, ?, ?)`,

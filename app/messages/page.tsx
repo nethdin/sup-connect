@@ -128,15 +128,16 @@ function MessagesContent() {
         const date = new Date(dateString);
         const now = new Date();
         const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+        const locale = typeof navigator !== 'undefined' ? navigator.language || 'en-US' : 'en-US';
 
         if (diffDays === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
         } else if (diffDays === 1) {
             return 'Yesterday';
         } else if (diffDays < 7) {
-            return date.toLocaleDateString([], { weekday: 'short' });
+            return date.toLocaleDateString(locale, { weekday: 'short' });
         }
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     };
 
     if (loading) {

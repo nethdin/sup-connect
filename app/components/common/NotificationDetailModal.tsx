@@ -62,7 +62,8 @@ export default function NotificationDetailModal({
       hour: '2-digit',
       minute: '2-digit',
     };
-    return date.toLocaleDateString('en-US', options);
+    const locale = typeof navigator !== 'undefined' ? navigator.language || 'en-US' : 'en-US';
+    return date.toLocaleDateString(locale, options);
   };
 
   const getNotificationIcon = (type: string) => {
