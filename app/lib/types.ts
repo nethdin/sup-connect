@@ -85,11 +85,19 @@ export interface Meeting {
   id: string;
   studentId: string;
   supervisorId: string;
-  dateTime: Date;
-  mode: 'IN_PERSON' | 'ONLINE';
+  dateTime: Date | string;
+  mode?: 'IN_PERSON' | 'ONLINE';
   notes?: string;
   feedback?: string;
-  createdAt: Date;
+  status?: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  duration?: number;
+  supervisor?: {
+    id: string;
+    name: string;
+    email: string;
+    department?: string;
+  };
+  createdAt: Date | string;
 }
 
 // Recommendation
